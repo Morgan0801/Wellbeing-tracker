@@ -1,11 +1,5 @@
 // src/hooks/useInsights.ts
-import { format, parseISO, subDays } from 'date-fns';
-import { isWithinInterval } from 'date-fns';
-
-// On évite les imports stricts de types si ton arbo a bougé ; tu peux remettre ceux de ton projet si besoin.
-// import type { InsightData, Correlation, Recommendation } from '@/types/phase5-types';
-
-// Hooks existants (défensif si leurs signatures varient)
+import { format, parseISO, subDays, isWithinInterval } from 'date-fns';
 import { useMood } from './useMood';
 import { useSleep } from './useSleep';
 import { useHabits } from './useHabits';
@@ -38,7 +32,6 @@ type InsightData = {
 };
 
 export function useInsights(days: number = 30) {
-  // Récupération défensive des autres hooks (qu’ils exposent isLoading OU loading)
   const moodHook: any = useMood();
   const sleepHook: any = useSleep();
   const habitsHook: any = useHabits();
@@ -67,24 +60,32 @@ export function useInsights(days: number = 30) {
     });
 
   // --- Moods ---
+  // ✅ CORRECTIF: Utiliser 'datetime' en priorité (nom correct de la colonne)
   const filteredMoods = Array.isArray(moods)
     ? moods.filter((m: any) => {
-        const d = parseISO(m.date ?? m.created_at ?? m.createdAt);
+        const dateStr = m.datetime ?? m.date ?? m.created_at ?? m.createdAt;
+        if (!dateStr) return false;
+        const d = parseISO(dateStr);
         return d instanceof Date && !isNaN(+d) && inRange(d);
       })
     : [];
 
   const moodTrend = filteredMoods
-    .map((m: any) => ({
-      date: format(parseISO(m.date ?? m.created_at ?? m.createdAt), 'yyyy-MM-dd'),
-      score: Number(m.global_score ?? m.globalScore ?? m.score ?? 0),
-    }))
+    .map((m: any) => {
+      const dateStr = m.datetime ?? m.date ?? m.created_at ?? m.createdAt;
+      return {
+        date: format(parseISO(dateStr), 'yyyy-MM-dd'),
+        score: Number(m.score_global ?? m.global_score ?? m.globalScore ?? m.score ?? 0),
+      };
+    })
     .sort((a: any, b: any) => a.date.localeCompare(b.date));
 
   // --- Sleep ---
   const filteredSleep = Array.isArray(sleepLogs)
     ? sleepLogs.filter((s: any) => {
-        const d = parseISO(s.date ?? s.created_at ?? s.createdAt);
+        const dateStr = s.date ?? s.created_at ?? s.createdAt;
+        if (!dateStr) return false;
+        const d = parseISO(dateStr);
         return d instanceof Date && !isNaN(+d) && inRange(d);
       })
     : [];
@@ -100,7 +101,9 @@ export function useInsights(days: number = 30) {
   // --- Habits ---
   const filteredHabitLogs = Array.isArray(habitLogs)
     ? habitLogs.filter((l: any) => {
-        const d = parseISO(l.date ?? l.created_at ?? l.createdAt);
+        const dateStr = l.date ?? l.created_at ?? l.createdAt;
+        if (!dateStr) return false;
+        const d = parseISO(dateStr);
         return d instanceof Date && !isNaN(+d) && inRange(d);
       })
     : [];
@@ -134,7 +137,8 @@ export function useInsights(days: number = 30) {
       habitLogs: filteredHabitLogs.length,
       tasks: Array.isArray(tasks)
         ? tasks.filter((t: any) => {
-            const d = parseISO(t.date ?? t.created_at ?? t.createdAt ?? new Date().toISOString());
+            const dateStr = t.date ?? t.created_at ?? t.createdAt ?? new Date().toISOString();
+            const d = parseISO(dateStr);
             return d instanceof Date && !isNaN(+d) && inRange(d);
           }).length
         : 0,
@@ -152,7 +156,6 @@ export function useInsights(days: number = 30) {
 // ===== Helpers =====
 
 function calculateStreak(logs: any[]): number {
-  // Streak sur jours consécutifs (complétés)
   const byDate = new Set(
     logs
       .filter((l: any) => l.completed ?? l.is_done ?? false)
@@ -173,29 +176,33 @@ function calculateCorrelations(moods: any[], sleep: any[], habitLogs: any[], _st
 
   // 1) Sommeil (qualité) -> Humeur (moyenne du lendemain)
   if (sleep.length > 5 && moods.length > 5) {
-    const moodAvg = avg(moods.map((m: any) => Number(m.global_score ?? m.score ?? 0)));
+    const moodAvg = avg(moods.map((m: any) => Number(m.score_global ?? m.global_score ?? m.score ?? 0)));
     const goodSleepDays = sleep.filter((s: any) => Number(s.quality_score ?? s.quality ?? 0) >= 7);
 
     const moodsAfterGoodSleep = moods.filter((m: any) => {
-      const prev = format(subDays(parseISO(m.date ?? m.created_at ?? m.createdAt), 1), 'yyyy-MM-dd');
-      return goodSleepDays.some((s: any) => format(parseISO(s.date ?? s.created_at ?? s.createdAt), 'yyyy-MM-dd') === prev);
+      const moodDateStr = m.datetime ?? m.date ?? m.created_at ?? m.createdAt;
+      const prev = format(subDays(parseISO(moodDateStr), 1), 'yyyy-MM-dd');
+      return goodSleepDays.some((s: any) => {
+        const sleepDateStr = s.date ?? s.created_at ?? s.createdAt;
+        return format(parseISO(sleepDateStr), 'yyyy-MM-dd') === prev;
+      });
     });
 
     if (moodsAfterGoodSleep.length > 0) {
-      const mAfter = avg(moodsAfterGoodSleep.map((m: any) => Number(m.global_score ?? m.score ?? 0)));
+      const mAfter = avg(moodsAfterGoodSleep.map((m: any) => Number(m.score_global ?? m.global_score ?? m.score ?? 0)));
       if (mAfter > moodAvg) {
         correlations.push({
           id: 'sleep-mood',
           type: 'positive',
           strength: clamp(Math.round(((mAfter - moodAvg) / Math.max(1, moodAvg)) * 100), 1, 95),
           description: 'Sommeil de qualité ➜ humeur plus élevée le lendemain',
-          insight: `Ton humeur est en moyenne +${Math.round(mAfter - moodAvg)} après une bonne nuit.`,
+          insight: `Ton humeur est en moyenne +${Math.round(mAfter - moodAvg)} points après une bonne nuit.`,
         });
       }
     }
   }
 
-  // 2) Habitudes -> Humeur (corrélation simple : plus de complétions = meilleure humeur)
+  // 2) Habitudes -> Humeur
   if (habitLogs.length > 5 && moods.length > 5) {
     const completedByDay = new Map<string, number>();
     habitLogs.forEach((l: any) => {
@@ -206,8 +213,9 @@ function calculateCorrelations(moods: any[], sleep: any[], habitLogs: any[], _st
     });
 
     const pairs: Array<[number, number]> = moods.map((m: any) => {
-      const d = format(parseISO(m.date ?? m.created_at ?? m.createdAt), 'yyyy-MM-dd');
-      return [completedByDay.get(d) ?? 0, Number(m.global_score ?? m.score ?? 0)];
+      const moodDateStr = m.datetime ?? m.date ?? m.created_at ?? m.createdAt;
+      const d = format(parseISO(moodDateStr), 'yyyy-MM-dd');
+      return [completedByDay.get(d) ?? 0, Number(m.score_global ?? m.global_score ?? m.score ?? 0)];
     });
 
     const corr = pearson(pairs);
@@ -217,7 +225,33 @@ function calculateCorrelations(moods: any[], sleep: any[], habitLogs: any[], _st
         type: corr > 0 ? 'positive' : 'negative',
         strength: clamp(Math.round(Math.abs(corr) * 100), 1, 95),
         description: 'Corrélation entre habitudes complétées et humeur du jour',
-        insight: corr > 0 ? 'Plus tu complètes d’habitudes, meilleure est ton humeur.' : 'Beaucoup d’habitudes le même jour semble te fatiguer.',
+        insight: corr > 0 ? 'Plus tu complètes d\'habitudes, meilleure est ton humeur.' : 'Beaucoup d\'habitudes le même jour semble te fatiguer.',
+      });
+    }
+  }
+
+  // ✅ 3) NOUVEAU: Sommeil (heures) -> Humeur
+  if (sleep.length > 5 && moods.length > 5) {
+    const sleepHoursByDay = new Map<string, number>();
+    sleep.forEach((s: any) => {
+      const d = format(parseISO(s.date ?? s.created_at ?? s.createdAt), 'yyyy-MM-dd');
+      sleepHoursByDay.set(d, Number(s.total_hours ?? s.totalHours ?? 0));
+    });
+
+    const pairs: Array<[number, number]> = moods.map((m: any) => {
+      const moodDateStr = m.datetime ?? m.date ?? m.created_at ?? m.createdAt;
+      const prev = format(subDays(parseISO(moodDateStr), 1), 'yyyy-MM-dd');
+      return [sleepHoursByDay.get(prev) ?? 7, Number(m.score_global ?? m.global_score ?? m.score ?? 0)];
+    });
+
+    const corr = pearson(pairs);
+    if (!Number.isNaN(corr) && Math.abs(corr) >= 0.15) {
+      correlations.push({
+        id: 'sleep-hours-mood',
+        type: corr > 0 ? 'positive' : 'negative',
+        strength: clamp(Math.round(Math.abs(corr) * 100), 1, 95),
+        description: 'Corrélation entre heures de sommeil et humeur',
+        insight: corr > 0 ? 'Plus tu dors, meilleure est ton humeur le lendemain.' : 'Trop dormir semble affecter ton humeur.',
       });
     }
   }
@@ -250,7 +284,7 @@ function generateRecommendations(
         id: 'sleep-quality',
         category: 'sleep',
         title: 'Améliore ta qualité de sommeil',
-        description: 'Qualité moyenne < 6. Essaie une routine régulière, lumière douce et pas d’écran 1h avant.',
+        description: 'Qualité moyenne < 6. Essaie une routine régulière, lumière douce et pas d\'écran 1h avant.',
         priority: 'medium',
       });
     }
@@ -278,7 +312,7 @@ function generateRecommendations(
       id: `habit-boost-${h.habitId}`,
       category: 'habits',
       title: `Rends « ${h.habitName} » plus facile`,
-      description: `Taux de succès < 50%. Réduis la taille de l’action et place-la après une routine déjà en place.`,
+      description: `Taux de succès < 50%. Réduis la taille de l'action et place-la après une routine déjà en place.`,
       priority: 'medium',
     }),
   );
@@ -290,7 +324,7 @@ function generateRecommendations(
       id: 'great-momentum',
       category: 'productivity',
       title: 'Super momentum 🚀',
-      description: `${high.length} habitudes très régulières. Tu peux envisager d’en ancrer une nouvelle petite.`,
+      description: `${high.length} habitudes très régulières. Tu peux envisager d'en ancrer une nouvelle petite.`,
       priority: 'low',
     });
   }
@@ -306,7 +340,6 @@ function avg(nums: number[]): number {
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
-// Coefficient de Pearson sur paires [x, y]
 function pearson(pairs: Array<[number, number]>): number {
   const n = pairs.length;
   if (n === 0) return NaN;

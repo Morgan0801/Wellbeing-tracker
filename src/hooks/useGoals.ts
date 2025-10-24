@@ -2,10 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Goal, GoalMilestone } from '@/types/phase4-types';
 import { useAuthStore } from '@/stores/authStore';
+import { useGamificationTriggers } from './useGamificationTriggers';
 
 export function useGoals() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const { checkAndUnlockBadges } = useGamificationTriggers();
 
   // RÃ©cupÃ©rer tous les objectifs
   const { data: goals = [], isLoading } = useQuery({
@@ -104,9 +106,20 @@ export function useGoals() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
-    },
+    onSuccess: async (data) => {
+  queryClient.invalidateQueries({ queryKey: ['goals'] });
+  
+  if (data.completed) {
+    await supabase.rpc('add_xp', {
+      p_user_id: user?.id,
+      p_action_type: 'goal_completed',
+      p_xp_amount: 100,
+      p_description: 'Objectif atteint',
+    });
+    queryClient.invalidateQueries({ queryKey: ['gamification'] });
+	await checkAndUnlockBadges();
+  }
+},
   });
 
   // Ajouter un milestone

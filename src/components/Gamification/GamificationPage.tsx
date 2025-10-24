@@ -2,7 +2,7 @@ import { Trophy, Zap, TrendingUp, Award } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useGamification } from '@/hooks/useGamification';
-import { calculateLevel, levelProgress, xpForNextLevel, AVAILABLE_BADGES } from '@/types/phase4-types';
+import { levelProgress, xpForNextLevel, AVAILABLE_BADGES } from '@/types/phase4-types';
 import { formatDate } from '@/lib/utils';
 
 export function GamificationPage() {
@@ -123,7 +123,7 @@ export function GamificationPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {AVAILABLE_BADGES.map((badge) => {
-            const earned = gamification.badges.find((b) => b.id === badge.id);
+            const earned = gamification.badges.find((b:any) => b.id === badge.id);
 
             return (
               <Card

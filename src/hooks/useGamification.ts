@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
-import type { UserGamification, Quest, ExtendedBadge } from '@/types/phase5-types';
+import type { UserGamification, Quest } from '@/types/phase5-types';
 import { PHASE5_BADGES } from '@/types/phase5-types';
-import { calculateLevel, xpForNextLevel, levelProgress } from '@/types/phase4-types';
+import { calculateLevel, levelProgress } from '@/types/phase4-types';
 
 export function useGamification() {
   const { user } = useAuthStore();
@@ -136,7 +136,7 @@ export function useGamification() {
           level: newLevel,
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .select()
         .single();
 
@@ -188,7 +188,7 @@ export function useGamification() {
           badges: [...existingBadges, newBadge],
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .select()
         .single();
 
@@ -239,7 +239,7 @@ export function useGamification() {
           last_activity_date: today,
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .select()
         .single();
 

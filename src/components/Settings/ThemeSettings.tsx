@@ -3,10 +3,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Palette, Check } from 'lucide-react';
 
-export default function ThemeSettings() {
-  const { themeSettings, presetThemes, loading, applyPreset } = useTheme();
+export default function settings() {
+  const { settings, presetThemes, loading, applyPresetTheme } = useTheme();
 
-  if (loading || !themeSettings) {
+
+  if (loading || !settings) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -34,13 +35,13 @@ export default function ThemeSettings() {
           <div 
             className="w-20 h-20 rounded-lg border-2"
             style={{ 
-              background: `linear-gradient(135deg, ${themeSettings.colors.primary}, ${themeSettings.colors.secondary})`
+              background: `linear-gradient(135deg, ${settings?.colors.primary}, ${settings?.colors.secondary})`
             }}
           />
           <div>
-            <h3 className="text-lg font-semibold">{themeSettings.theme_name}</h3>
+            <h3 className="text-lg font-semibold">{settings?.theme_name}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {themeSettings.is_custom ? 'Thème personnalisé' : 'Thème prédéfini'}
+              {settings?.is_custom ? 'Thème personnalisé' : 'Thème prédéfini'}
             </p>
           </div>
         </div>
@@ -53,9 +54,10 @@ export default function ThemeSettings() {
           {presetThemes.map((theme) => (
             <button
               key={theme.id}
-              onClick={() => applyPreset(theme)}
+              onClick={() => applyPresetTheme(theme.name)}
+
               className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                themeSettings.theme_name === theme.name
+                settings?.theme_name === theme.name
                   ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2'
                   : 'border-gray-300 dark:border-gray-700'
               }`}
@@ -67,7 +69,7 @@ export default function ThemeSettings() {
                     background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`
                   }}
                 />
-                {themeSettings.theme_name === theme.name && (
+                {settings?.theme_name === theme.name && (
                   <div className="absolute top-2 right-2 w-6 h-6 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center">
                     <Check className="w-4 h-4 text-blue-500" />
                   </div>

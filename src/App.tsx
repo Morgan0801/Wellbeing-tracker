@@ -12,7 +12,7 @@ import { GoalsPage } from './components/Goals/GoalsPage';
 import { GratitudePage } from './components/Gratitude/GratitudePage';
 import { MoodboardPage } from './components/Moodboard/MoodboardPage';
 import { GamificationPage } from './components/Gamification/GamificationPage';
-import InsightsPage from '@/components/Insights/InsightsPage';
+import { InsightsPage } from '@/components/Insights/InsightsPage';
 import ExportPage from '@/components/Export/ExportPage';
 import NotificationsSettings from '@/components/Notifications/NotificationsSettings';
 import ThemeSettings from '@/components/Settings/ThemeSettings';

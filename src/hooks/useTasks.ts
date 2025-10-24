@@ -76,27 +76,37 @@ export function useTasks() {
 
   // Toggle complétion d'une tâche
   const toggleTaskMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const task = tasks.find((t) => t.id === id);
-      if (!task) throw new Error('Task not found');
+  mutationFn: async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) throw new Error('Task not found');
 
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({
-          completed: !task.completed,
-          completed_at: !task.completed ? new Date().toISOString() : null,
-        })
-        .eq('id', id)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({
+        completed: !task.completed,
+        completed_at: !task.completed ? new Date().toISOString() : null,
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    },
-  });
+    if (error) throw error;
+    return data;
+  },
+  onSuccess: async (data) => {
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    
+    if (data.completed) {
+      await supabase.rpc('add_xp', {
+        p_user_id: user?.id,
+        p_action_type: 'task_completed',
+        p_xp_amount: 20,
+        p_description: 'Tâche terminée',
+      });
+      queryClient.invalidateQueries({ queryKey: ['gamification'] });
+    }
+  },
+});
 
   // Déplacer une tâche vers un autre quadrant
   const moveTaskMutation = useMutation({

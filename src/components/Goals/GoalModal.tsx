@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGoals } from '@/hooks/useGoals';
-import { GOAL_CATEGORIES } from '@/types/phase4-types';
+import { GoalCategory, GOAL_CATEGORIES } from '@/types/phase4-types';
+
 
 interface GoalModalProps {
   open: boolean;
@@ -13,7 +14,7 @@ export function GoalModal({ open, onOpenChange }: GoalModalProps) {
   const { addGoal } = useGoals();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('perso');
+  const [category, setCategory] = useState<GoalCategory>('perso');
   const [targetDate, setTargetDate] = useState('');
 
   if (!open) return null;

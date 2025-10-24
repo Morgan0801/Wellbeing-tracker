@@ -1,13 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Mood, MoodDomain } from '@/types';
+import { MoodLog, DomainImpact } from '@/types';
 import { useAuthStore } from '@/stores/authStore';
+import { useGamificationTriggers } from './useGamificationTriggers';
+
+interface AddMoodParams {
+  score_global: number;
+  emotions: string[];
+  note?: string;
+  weather?: any;
+  domains?: DomainImpact[];
+}
+
+interface UpdateMoodParams {
+  id: string;
+  updates: Partial<AddMoodParams>;
+}
 
 export function useMood() {
-  const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { checkAndUnlockBadges } = useGamificationTriggers();
 
-  // Récupérer tous les moods de l'utilisateur
   const { data: moods = [], isLoading } = useQuery({
     queryKey: ['moods', user?.id],
     queryFn: async () => {
@@ -18,22 +32,14 @@ export function useMood() {
         .order('datetime', { ascending: false });
 
       if (error) throw error;
-      return data as Mood[];
+      return data as MoodLog[];
     },
     enabled: !!user?.id,
   });
 
-  // Ajouter un nouveau mood
   const addMoodMutation = useMutation({
-    mutationFn: async (moodData: {
-      score_global: number;
-      emotions: string[];
-      note?: string;
-      weather?: any;
-      domains: { domain: string; impact: number }[];
-    }) => {
-      // Insérer le mood
-      const { data: mood, error: moodError } = await supabase
+    mutationFn: async (moodData: AddMoodParams) => {
+      const { data, error } = await supabase
         .from('moods')
         .insert([
           {
@@ -48,46 +54,104 @@ export function useMood() {
         .select()
         .single();
 
-      if (moodError) throw moodError;
+      if (error) throw error;
 
-      // Insérer les domaines
-      if (moodData.domains.length > 0) {
-        const domainsToInsert = moodData.domains.map((d) => ({
-          mood_id: mood.id,
+      // Ajouter les mood_domains si fournis
+      if (moodData.domains && moodData.domains.length > 0) {
+        const domainImpacts = moodData.domains.map((d) => ({
+          mood_id: data.id,
           domain: d.domain,
           impact: d.impact,
         }));
 
-        const { error: domainsError } = await supabase
+        const { error: domainError } = await supabase
           .from('mood_domains')
-          .insert(domainsToInsert);
+          .insert(domainImpacts);
 
-        if (domainsError) throw domainsError;
+        if (domainError) throw domainError;
       }
 
-      return mood;
+      // Ajouter XP
+      await supabase.rpc('add_xp', {
+        p_user_id: user?.id,
+        p_action_type: 'mood_log',
+        p_xp_amount: 10,
+        p_description: 'Mood enregistré',
+      });
+
+      return data;
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ['moods'] });
+      queryClient.invalidateQueries({ queryKey: ['gamification'] });
+      // ✅ DÉCLENCHER LA VÉRIFICATION DES BADGES
+      await checkAndUnlockBadges();
+    },
+  });
+
+  const updateMoodMutation = useMutation({
+    mutationFn: async ({ id, updates }: UpdateMoodParams) => {
+      const { data, error } = await supabase
+        .from('moods')
+        .update({
+          score_global: updates.score_global,
+          emotions: updates.emotions,
+          note: updates.note,
+          weather: updates.weather,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Mettre à jour les mood_domains si fournis
+      if (updates.domains !== undefined) {
+        // Supprimer les anciens
+        await supabase.from('mood_domains').delete().eq('mood_id', id);
+
+        // Ajouter les nouveaux
+        if (updates.domains.length > 0) {
+          const domainImpacts = updates.domains.map((d) => ({
+            mood_id: id,
+            domain: d.domain,
+            impact: d.impact,
+          }));
+
+          await supabase.from('mood_domains').insert(domainImpacts);
+        }
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['moods'] });
     },
   });
 
-  // Récupérer les domaines d'un mood spécifique
-  const getMoodDomains = async (moodId: string): Promise<MoodDomain[]> => {
-    const { data, error } = await supabase
-      .from('mood_domains')
-      .select('*')
-      .eq('mood_id', moodId);
+  const deleteMoodMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Supprimer les mood_domains associés
+      await supabase.from('mood_domains').delete().eq('mood_id', id);
 
-    if (error) throw error;
-    return data as MoodDomain[];
-  };
+      // Supprimer le mood
+      const { error } = await supabase.from('moods').delete().eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['moods'] });
+    },
+  });
 
   return {
     moods,
     isLoading,
     addMood: addMoodMutation.mutate,
     isAdding: addMoodMutation.isPending,
-    getMoodDomains,
+    updateMood: updateMoodMutation.mutate,
+    isUpdating: updateMoodMutation.isPending,
+    deleteMood: deleteMoodMutation.mutate,
+    isDeleting: deleteMoodMutation.isPending,
   };
 }

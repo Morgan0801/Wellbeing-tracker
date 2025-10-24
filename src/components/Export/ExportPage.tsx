@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useExport } from '@/hooks/useExport';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import type { ExportOptions, ExportSection } from '@/types/phase5-types';

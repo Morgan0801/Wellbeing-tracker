@@ -461,3 +461,29 @@ export interface UserPreferences {
   created_at: string;
   updated_at: string;
 }
+
+export interface UserGamification {
+  id: string;
+  user_id: string;
+  level: number;
+  total_xp: number; // ✅
+  current_streak: number;
+  longest_streak: number;
+  streak_days: number; // ✅ Ajoute si manquant
+  last_activity_date: string; // ✅ Ajoute si manquant
+  total_tasks: number;
+  total_habits: number;
+  created_at: string;
+  updated_at: string;
+  
+  badges: BadgeUnlock[];
+}
+
+export type BadgeUnlock = {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  earned_at: string;
+};
+

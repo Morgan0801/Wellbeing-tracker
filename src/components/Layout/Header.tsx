@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { Moon, Sun, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
+import { useGamification } from '@/hooks/useGamification';
+import { levelProgress, xpForNextLevel } from '@/types/phase4-types';
 
 export function Header() {
   const [isDark, setIsDark] = useState(false);
   const { logout } = useAuth();
+  const { gamification } = useGamification();
 
   useEffect(() => {
-    // Vérifier le thème stocké ou la préférence système
     const stored = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const shouldBeDark = stored === 'dark' || (!stored && prefersDark);
@@ -25,6 +28,15 @@ export function Header() {
     localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
   };
 
+  const progress = gamification
+    ? levelProgress(gamification.total_xp, gamification.level)
+    : 0;
+
+  const nextLevelXP = gamification ? xpForNextLevel(gamification.level) : 0;
+  const xpRemaining = gamification
+    ? nextLevelXP - gamification.total_xp
+    : 0;
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-900/60">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -34,6 +46,28 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* ✅ NIVEAU + BARRE DE PROGRESSION */}
+          {gamification && (
+            <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-500 text-white text-sm font-bold">
+                  {gamification.level}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Niveau {gamification.level}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={progress} className="h-1.5 w-24" />
+                    <span className="text-xs text-gray-500">
+                      {xpRemaining} XP
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Theme Toggle */}
           <div className="flex items-center gap-2">
             <Sun className="h-4 w-4" />

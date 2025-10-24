@@ -154,7 +154,15 @@ export function GoalsPage() {
                         </div>
                         <CardTitle className="text-base line-through">{goal.title}</CardTitle>
                       </div>
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      {/* ✅ CHANGEMENT ICI : Bouton cliquable pour décocher */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleGoal(goal.id)}
+                        className="text-green-500 hover:text-green-700"
+                      >
+                        <CheckCircle2 className="w-5 h-5" />
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
@@ -171,7 +179,7 @@ export function GoalsPage() {
         </div>
       )}
 
-      {/* Modal - LIGNE AJOUTÉE */}
+      {/* Modal */}
       <GoalModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
     </div>
   );

@@ -207,4 +207,26 @@ export interface SleepLog {
   wakeup_time: string;
   quality_score: number; // 1-10
   created_at: string;
+  notes?: string;
+
+}
+
+// ✅ Ajoute ces exports
+export interface MoodLog {
+  id: string;
+  user_id: string;
+  datetime: string;
+  score_global: number;
+  emotions: string[];
+  energy_level: number;
+  stress_level: number;
+  domains: DomainImpact[];
+  weather?: WeatherData | null;
+  note?: string;
+  created_at: string;
+}
+
+export interface DomainImpact {
+  domain: string;
+  impact: number;
 }

@@ -1,0 +1,985 @@
+[
+  {
+    "supabase_schema": {
+      "tables": {
+        "goals": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "default": null,
+            "position": 4,
+            "is_nullable": true
+          },
+          {
+            "name": "category",
+            "type": "text",
+            "default": null,
+            "position": 5,
+            "is_nullable": false
+          },
+          {
+            "name": "target_date",
+            "type": "date",
+            "default": null,
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "completed",
+            "type": "bool",
+            "default": "false",
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "completed_at",
+            "type": "timestamptz",
+            "default": null,
+            "position": 8,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 9,
+            "is_nullable": true
+          }
+        ],
+        "moods": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "uuid_generate_v4()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "datetime",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 3,
+            "is_nullable": true
+          },
+          {
+            "name": "score_global",
+            "type": "int4",
+            "default": null,
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "emotions",
+            "type": "_text",
+            "default": "'{}'::text[]",
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "note",
+            "type": "text",
+            "default": null,
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "weather",
+            "type": "jsonb",
+            "default": null,
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 8,
+            "is_nullable": true
+          }
+        ],
+        "tasks": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "uuid_generate_v4()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "quadrant",
+            "type": "int4",
+            "default": null,
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "deadline",
+            "type": "timestamptz",
+            "default": null,
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "recurring",
+            "type": "bool",
+            "default": "false",
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "recurrence_pattern",
+            "type": "text",
+            "default": null,
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "completed",
+            "type": "bool",
+            "default": "false",
+            "position": 8,
+            "is_nullable": true
+          },
+          {
+            "name": "completed_at",
+            "type": "timestamptz",
+            "default": null,
+            "position": 9,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 10,
+            "is_nullable": true
+          }
+        ],
+        "users": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "uuid_generate_v4()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 2,
+            "is_nullable": true
+          },
+          {
+            "name": "settings",
+            "type": "jsonb",
+            "default": "'{\"theme\": \"light\", \"widgets_visible\": [\"mood\", \"weather\", \"stats\"]}'::jsonb",
+            "position": 3,
+            "is_nullable": true
+          }
+        ],
+        "habits": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "uuid_generate_v4()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "category",
+            "type": "text",
+            "default": null,
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "frequency",
+            "type": "text",
+            "default": null,
+            "position": 5,
+            "is_nullable": false
+          },
+          {
+            "name": "quantifiable",
+            "type": "bool",
+            "default": "false",
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "unit",
+            "type": "text",
+            "default": null,
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "color",
+            "type": "text",
+            "default": "'#66BB6A'::text",
+            "position": 8,
+            "is_nullable": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 9,
+            "is_nullable": true
+          }
+        ],
+        "habit_logs": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "uuid_generate_v4()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "habit_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "date",
+            "type": "date",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "completed",
+            "type": "bool",
+            "default": "false",
+            "position": 4,
+            "is_nullable": true
+          },
+          {
+            "name": "quantity",
+            "type": "numeric",
+            "default": null,
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 6,
+            "is_nullable": true
+          }
+        ],
+        "sleep_logs": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "date",
+            "type": "date",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "bedtime",
+            "type": "text",
+            "default": null,
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "wakeup_time",
+            "type": "text",
+            "default": null,
+            "position": 5,
+            "is_nullable": false
+          },
+          {
+            "name": "total_hours",
+            "type": "numeric",
+            "default": null,
+            "position": 6,
+            "is_nullable": false
+          },
+          {
+            "name": "quality_score",
+            "type": "int4",
+            "default": null,
+            "position": 7,
+            "is_nullable": false
+          },
+          {
+            "name": "notes",
+            "type": "text",
+            "default": null,
+            "position": 8,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 9,
+            "is_nullable": true
+          },
+          {
+            "name": "rem_hours",
+            "type": "numeric",
+            "default": "0",
+            "position": 10,
+            "is_nullable": true
+          },
+          {
+            "name": "deep_hours",
+            "type": "numeric",
+            "default": "0",
+            "position": 11,
+            "is_nullable": true
+          },
+          {
+            "name": "avg_heart_rate",
+            "type": "int4",
+            "default": "60",
+            "position": 12,
+            "is_nullable": true
+          }
+        ],
+        "xp_history": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "action_type",
+            "type": "text",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "xp_gained",
+            "type": "int4",
+            "default": null,
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "default": null,
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 6,
+            "is_nullable": true
+          }
+        ],
+        "mood_domains": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "uuid_generate_v4()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "mood_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "domain",
+            "type": "text",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "impact",
+            "type": "int4",
+            "default": null,
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 5,
+            "is_nullable": true
+          }
+        ],
+        "theme_settings": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "theme_name",
+            "type": "text",
+            "default": "'Ocean Blue'::text",
+            "position": 3,
+            "is_nullable": true
+          },
+          {
+            "name": "is_custom",
+            "type": "bool",
+            "default": "false",
+            "position": 4,
+            "is_nullable": true
+          },
+          {
+            "name": "colors",
+            "type": "jsonb",
+            "default": "'{\"muted\": \"#F3F4F6\", \"accent\": \"#F59E0B\", \"border\": \"#E5E7EB\", \"primary\": \"#3B82F6\", \"secondary\": \"#8B5CF6\", \"background\": \"#FFFFFF\", \"foreground\": \"#1F2937\"}'::jsonb",
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "spacing",
+            "type": "text",
+            "default": "'normal'::text",
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "radius",
+            "type": "int4",
+            "default": "12",
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "font",
+            "type": "text",
+            "default": "'inter'::text",
+            "position": 8,
+            "is_nullable": true
+          },
+          {
+            "name": "effects",
+            "type": "jsonb",
+            "default": "'{\"shadows\": \"md\", \"animations\": true, \"neumorphism\": false, \"glassmorphism\": false}'::jsonb",
+            "position": 9,
+            "is_nullable": true
+          },
+          {
+            "name": "background_image",
+            "type": "text",
+            "default": null,
+            "position": 10,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 11,
+            "is_nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 12,
+            "is_nullable": true
+          }
+        ],
+        "goal_milestones": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "goal_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "completed",
+            "type": "bool",
+            "default": "false",
+            "position": 4,
+            "is_nullable": true
+          },
+          {
+            "name": "completed_at",
+            "type": "timestamptz",
+            "default": null,
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 6,
+            "is_nullable": true
+          }
+        ],
+        "moodboard_items": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "type",
+            "type": "text",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "content",
+            "type": "text",
+            "default": null,
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "author",
+            "type": "text",
+            "default": null,
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "category",
+            "type": "text",
+            "default": null,
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 7,
+            "is_nullable": true
+          }
+        ],
+        "user_preferences": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "dashboard_layout",
+            "type": "jsonb",
+            "default": null,
+            "position": 3,
+            "is_nullable": true
+          },
+          {
+            "name": "search_history",
+            "type": "jsonb",
+            "default": "'[]'::jsonb",
+            "position": 4,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 6,
+            "is_nullable": true
+          }
+        ],
+        "gratitude_entries": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "date",
+            "type": "date",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "entry_1",
+            "type": "text",
+            "default": null,
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "entry_2",
+            "type": "text",
+            "default": null,
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "entry_3",
+            "type": "text",
+            "default": null,
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "mood_emoji",
+            "type": "text",
+            "default": null,
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 8,
+            "is_nullable": true
+          }
+        ],
+        "user_gamification": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "total_xp",
+            "type": "int4",
+            "default": "0",
+            "position": 3,
+            "is_nullable": true
+          },
+          {
+            "name": "level",
+            "type": "int4",
+            "default": "1",
+            "position": 4,
+            "is_nullable": true
+          },
+          {
+            "name": "badges",
+            "type": "jsonb",
+            "default": "'[]'::jsonb",
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "last_activity_date",
+            "type": "date",
+            "default": null,
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "streak_days",
+            "type": "int4",
+            "default": "0",
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 8,
+            "is_nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 9,
+            "is_nullable": true
+          }
+        ],
+        "notification_settings": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "habits_enabled",
+            "type": "bool",
+            "default": "true",
+            "position": 3,
+            "is_nullable": true
+          },
+          {
+            "name": "habits_time",
+            "type": "text",
+            "default": "'09:00'::text",
+            "position": 4,
+            "is_nullable": true
+          },
+          {
+            "name": "sleep_enabled",
+            "type": "bool",
+            "default": "true",
+            "position": 5,
+            "is_nullable": true
+          },
+          {
+            "name": "sleep_time",
+            "type": "text",
+            "default": "'22:00'::text",
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "mood_enabled",
+            "type": "bool",
+            "default": "true",
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "mood_time",
+            "type": "text",
+            "default": "'20:00'::text",
+            "position": 8,
+            "is_nullable": true
+          },
+          {
+            "name": "gratitude_enabled",
+            "type": "bool",
+            "default": "true",
+            "position": 9,
+            "is_nullable": true
+          },
+          {
+            "name": "gratitude_time",
+            "type": "text",
+            "default": "'21:00'::text",
+            "position": 10,
+            "is_nullable": true
+          },
+          {
+            "name": "tasks_enabled",
+            "type": "bool",
+            "default": "true",
+            "position": 11,
+            "is_nullable": true
+          },
+          {
+            "name": "sound_enabled",
+            "type": "bool",
+            "default": "true",
+            "position": 12,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 13,
+            "is_nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 14,
+            "is_nullable": true
+          }
+        ]
+      },
+      "functions": [
+        {
+          "args": "p_user_id uuid, p_action_type text, p_xp_amount integer, p_description text",
+          "kind": "FUNCTION",
+          "name": "add_xp",
+          "schema": "public",
+          "source": "CREATE OR REPLACE FUNCTION public.add_xp(p_user_id uuid, p_action_type text, p_xp_amount integer, p_description text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  v_new_xp INTEGER;\r\n  v_new_level INTEGER;\r\nBEGIN\r\n  -- Insérer dans xp_history\r\n  INSERT INTO xp_history (user_id, action_type, xp_gained, description)\r\n  VALUES (p_user_id, p_action_type, p_xp_amount, p_description);\r\n  \r\n  -- Mettre à jour user_gamification\r\n  UPDATE user_gamification\r\n  SET \r\n    total_xp = total_xp + p_xp_amount,\r\n    level = FLOOR((total_xp + p_xp_amount) / 100) + 1,\r\n    last_activity_date = CURRENT_DATE,\r\n    updated_at = NOW()\r\n  WHERE user_id = p_user_id;\r\n  \r\n  -- Si l'utilisateur n'existe pas encore, le créer\r\n  IF NOT FOUND THEN\r\n    INSERT INTO user_gamification (user_id, total_xp, level, last_activity_date)\r\n    VALUES (p_user_id, p_xp_amount, FLOOR(p_xp_amount / 100) + 1, CURRENT_DATE);\r\n  END IF;\r\n  \r\n  -- Mettre à jour le streak\r\n  UPDATE user_gamification\r\n  SET streak_days = CASE\r\n    WHEN last_activity_date = CURRENT_DATE - INTERVAL '1 day' THEN streak_days + 1\r\n    WHEN last_activity_date = CURRENT_DATE THEN streak_days\r\n    ELSE 1\r\n  END\r\n  WHERE user_id = p_user_id;\r\nEND;\r\n$function$\n",
+          "language": "plpgsql",
+          "security": "definer",
+          "volatility": "VOLATILE",
+          "return_type": "void"
+        },
+        {
+          "args": "xp integer",
+          "kind": "FUNCTION",
+          "name": "calculate_level",
+          "schema": "public",
+          "source": "CREATE OR REPLACE FUNCTION public.calculate_level(xp integer)\n RETURNS integer\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  RETURN FLOOR(SQRT(xp / 100.0)) + 1;\r\nEND;\r\n$function$\n",
+          "language": "plpgsql",
+          "security": "invoker",
+          "volatility": "VOLATILE",
+          "return_type": "integer"
+        },
+        {
+          "args": "",
+          "kind": "FUNCTION",
+          "name": "update_user_level",
+          "schema": "public",
+          "source": "CREATE OR REPLACE FUNCTION public.update_user_level()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  NEW.level := calculate_level(NEW.total_xp);\r\n  NEW.updated_at := NOW();\r\n  RETURN NEW;\r\nEND;\r\n$function$\n",
+          "language": "plpgsql",
+          "security": "invoker",
+          "volatility": "VOLATILE",
+          "return_type": "trigger"
+        }
+      ]
+    }
+  }
+]

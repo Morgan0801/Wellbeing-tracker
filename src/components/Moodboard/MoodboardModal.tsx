@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMoodboard } from '@/hooks/useMoodboard';
+import { MoodboardCategory } from '@/types/phase4-types';
+
 
 interface MoodboardModalProps {
   open: boolean;
@@ -14,7 +16,7 @@ const TYPES = [
   { id: 'image', label: 'Image URL', icon: '🖼️' },
 ];
 
-const CATEGORIES = [
+const CATEGORIES: { id: MoodboardCategory; label: string; color: string }[] = [
   { id: 'motivation', label: 'Motivation', color: '#f59e0b' },
   { id: 'calme', label: 'Calme', color: '#3b82f6' },
   { id: 'joie', label: 'Joie', color: '#eab308' },
@@ -26,26 +28,36 @@ export function MoodboardModal({ open, onOpenChange }: MoodboardModalProps) {
   const [type, setType] = useState<'quote' | 'affirmation' | 'image'>('quote');
   const [content, setContent] = useState('');
   const [author, setAuthor] = useState('');
-  const [category, setCategory] = useState('motivation');
+  const [category, setCategory] = useState<MoodboardCategory>('motivation');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!open) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    addItem({
-      type,
-      content,
-      author: author || undefined,
-      category,
-    });
+    try {
+      // ✅ CORRECTIF: Attendre la fin de l'ajout avant de fermer
+      await addItem({
+        type,
+        content,
+        author: author || undefined,
+        category,
+      });
 
-    onOpenChange(false);
-    // Reset form
-    setType('quote');
-    setContent('');
-    setAuthor('');
-    setCategory('motivation');
+      onOpenChange(false);
+      
+      // Reset form
+      setType('quote');
+      setContent('');
+      setAuthor('');
+      setCategory('motivation');
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -56,6 +68,7 @@ export function MoodboardModal({ open, onOpenChange }: MoodboardModalProps) {
           <button
             onClick={() => onOpenChange(false)}
             className="text-gray-500 hover:text-gray-700"
+            disabled={isSubmitting}
           >
             <X className="w-5 h-5" />
           </button>
@@ -71,12 +84,14 @@ export function MoodboardModal({ open, onOpenChange }: MoodboardModalProps) {
                   key={t.id}
                   type="button"
                   onClick={() => setType(t.id as any)}
+                  disabled={isSubmitting}
                   className={`
                     flex flex-col items-center gap-1 p-3 border rounded-lg transition-all
                     ${type === t.id 
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
                       : 'hover:border-gray-400'
                     }
+                    ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                 >
                   <span className="text-2xl">{t.icon}</span>
@@ -94,7 +109,8 @@ export function MoodboardModal({ open, onOpenChange }: MoodboardModalProps) {
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+              disabled={isSubmitting}
+              className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               rows={type === 'image' ? 2 : 4}
               placeholder={
                 type === 'image' 
@@ -115,7 +131,8 @@ export function MoodboardModal({ open, onOpenChange }: MoodboardModalProps) {
                 type="text"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                 placeholder="Nom de l'auteur"
               />
             </div>
@@ -130,12 +147,14 @@ export function MoodboardModal({ open, onOpenChange }: MoodboardModalProps) {
                   key={cat.id}
                   type="button"
                   onClick={() => setCategory(cat.id)}
+                  disabled={isSubmitting}
                   className={`
                     p-2 border rounded-lg text-sm font-medium transition-all
                     ${category === cat.id 
                       ? 'border-2 shadow-sm' 
                       : 'hover:border-gray-400'
                     }
+                    ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                   style={{
                     borderColor: category === cat.id ? cat.color : undefined,
@@ -154,12 +173,17 @@ export function MoodboardModal({ open, onOpenChange }: MoodboardModalProps) {
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
               className="flex-1"
             >
               Annuler
             </Button>
-            <Button type="submit" className="flex-1">
-              Ajouter
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              {isSubmitting ? 'Ajout en cours...' : 'Ajouter'}
             </Button>
           </div>
         </form>

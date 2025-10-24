@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import type { ExportOptions, PDFReport } from '@/types/phase5-types';
+import type { ExportOptions } from '@/types/phase5-types';
 import { useMood } from './useMood';
 import { useSleep } from './useSleep';
 import { useHabits } from './useHabits';
@@ -56,27 +55,27 @@ export function useExport() {
 
       // Sections
       if (options.sections.includes('mood') && filteredData.moods.length > 0) {
-        currentY = await addMoodSection(pdf, filteredData.moods, currentY, pageWidth, pageHeight);
+        currentY = await addMoodSection(pdf, filteredData.moods, currentY, pageHeight);
       }
 
       if (options.sections.includes('sleep') && filteredData.sleepLogs.length > 0) {
-        currentY = await addSleepSection(pdf, filteredData.sleepLogs, currentY, pageWidth, pageHeight);
+        currentY = await addSleepSection(pdf, filteredData.sleepLogs, currentY, pageHeight);
       }
 
       if (options.sections.includes('habits') && filteredData.habitLogs.length > 0) {
-        currentY = await addHabitsSection(pdf, habits, filteredData.habitLogs, currentY, pageWidth, pageHeight);
+        currentY = await addHabitsSection(pdf, habits, filteredData.habitLogs, currentY, pageHeight);
       }
 
       if (options.sections.includes('tasks') && filteredData.tasks.length > 0) {
-        currentY = await addTasksSection(pdf, filteredData.tasks, currentY, pageWidth, pageHeight);
+        currentY = await addTasksSection(pdf, filteredData.tasks, currentY, pageHeight);
       }
 
       if (options.sections.includes('goals') && filteredData.goals.length > 0) {
-        currentY = await addGoalsSection(pdf, filteredData.goals, currentY, pageWidth, pageHeight);
+        currentY = await addGoalsSection(pdf, filteredData.goals, currentY, pageHeight);
       }
 
       if (options.sections.includes('gratitude') && filteredData.gratitudeEntries.length > 0) {
-        currentY = await addGratitudeSection(pdf, filteredData.gratitudeEntries, currentY, pageWidth, pageHeight);
+        currentY = await addGratitudeSection(pdf, filteredData.gratitudeEntries, currentY, pageHeight);
       }
 
       // Pied de page
@@ -151,7 +150,7 @@ function filterDataByPeriod(options: ExportOptions, data: any) {
   };
 }
 
-async function addMoodSection(pdf: jsPDF, moods: any[], currentY: number, pageWidth: number, pageHeight: number): Promise<number> {
+async function addMoodSection(pdf: jsPDF, moods: any[], currentY: number, pageHeight: number): Promise<number> {
   // Titre de section
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
@@ -159,7 +158,7 @@ async function addMoodSection(pdf: jsPDF, moods: any[], currentY: number, pageWi
   currentY += 8;
 
   // Statistiques
-  const avgMood = moods.reduce((acc, m) => acc + m.global_score, 0) / moods.length;
+  const avgMood = moods.reduce((acc, m) => acc + m.score_global, 0) / moods.length;
   
   pdf.setFontSize(11);
   pdf.setFont('helvetica', 'normal');
@@ -177,7 +176,7 @@ async function addMoodSection(pdf: jsPDF, moods: any[], currentY: number, pageWi
   return currentY;
 }
 
-async function addSleepSection(pdf: jsPDF, sleepLogs: any[], currentY: number, pageWidth: number, pageHeight: number): Promise<number> {
+async function addSleepSection(pdf: jsPDF, sleepLogs: any[], currentY: number, pageHeight: number): Promise<number> {
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.text('😴 Sommeil', 15, currentY);
@@ -203,7 +202,7 @@ async function addSleepSection(pdf: jsPDF, sleepLogs: any[], currentY: number, p
   return currentY;
 }
 
-async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], currentY: number, pageWidth: number, pageHeight: number): Promise<number> {
+async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], currentY: number, pageHeight: number): Promise<number> {
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.text('💪 Habitudes', 15, currentY);
@@ -226,7 +225,7 @@ async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], cur
   return currentY;
 }
 
-async function addTasksSection(pdf: jsPDF, tasks: any[], currentY: number, pageWidth: number, pageHeight: number): Promise<number> {
+async function addTasksSection(pdf: jsPDF, tasks: any[], currentY: number, pageHeight: number): Promise<number> {
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.text('✅ Tâches', 15, currentY);
@@ -245,7 +244,7 @@ async function addTasksSection(pdf: jsPDF, tasks: any[], currentY: number, pageW
   return currentY;
 }
 
-async function addGoalsSection(pdf: jsPDF, goals: any[], currentY: number, pageWidth: number, pageHeight: number): Promise<number> {
+async function addGoalsSection(pdf: jsPDF, goals: any[], currentY: number, pageHeight: number): Promise<number> {
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.text('🎯 Objectifs', 15, currentY);
@@ -264,7 +263,7 @@ async function addGoalsSection(pdf: jsPDF, goals: any[], currentY: number, pageW
   return currentY;
 }
 
-async function addGratitudeSection(pdf: jsPDF, entries: any[], currentY: number, pageWidth: number, pageHeight: number): Promise<number> {
+async function addGratitudeSection(pdf: jsPDF, entries: any[], currentY: number, pageHeight: number): Promise<number> {
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.text('🙏 Gratitude', 15, currentY);

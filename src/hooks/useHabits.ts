@@ -3,10 +3,12 @@ import { supabase } from '@/lib/supabase';
 import { Habit, HabitLog } from '@/types';
 import { useAuthStore } from '@/stores/authStore';
 import { startOfDay, subDays } from 'date-fns';
+import { useGamificationTriggers } from './useGamificationTriggers';
 
 export function useHabits() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const { checkAndUnlockBadges } = useGamificationTriggers();
 
   // Récupérer toutes les habitudes
   const { data: habits = [], isLoading } = useQuery({
@@ -124,9 +126,18 @@ export function useHabits() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['habitLogs'] });
-    },
+    onSuccess: async () => {
+  queryClient.invalidateQueries({ queryKey: ['habitLogs'] });
+  
+  await supabase.rpc('add_xp', {
+    p_user_id: user?.id,
+    p_action_type: 'habit_completed',
+    p_xp_amount: 15,
+    p_description: 'Habitude complétée',
+  });
+  queryClient.invalidateQueries({ queryKey: ['gamification'] });
+  await checkAndUnlockBadges();
+},
   });
 
   // NOUVEAU : Supprimer un log spécifique

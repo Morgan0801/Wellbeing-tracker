@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmotionSelector } from './EmotionSelector';
 import { DomainSliders } from './DomainSliders';
 import { useMood } from '@/hooks/useMood';
-import { MOOD_LEVELS, DomainType } from '@/types';
+import { MOOD_LEVELS, DomainType, MoodLog } from '@/types';
 import { WeatherData } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -20,9 +20,10 @@ interface MoodModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   weather: WeatherData | null;
+  editingMood?: MoodLog; // ✅ NOUVEAU: mood à éditer
 }
 
-export function MoodModal({ open, onOpenChange, weather }: MoodModalProps) {
+export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModalProps) {
   const [step, setStep] = useState(1);
   const [scoreGlobal, setScoreGlobal] = useState(5);
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
@@ -38,7 +39,33 @@ export function MoodModal({ open, onOpenChange, weather }: MoodModalProps) {
     bienetre: 0,
   });
 
-  const { addMood, isAdding } = useMood();
+  const { addMood, updateMood, isAdding, isUpdating } = useMood();
+
+  // ✅ Charger les données du mood à éditer
+  useEffect(() => {
+    if (editingMood && open) {
+      setScoreGlobal(editingMood.score_global);
+      setSelectedEmotions(editingMood.emotions || []);
+      setNote(editingMood.note || '');
+      // TODO: Charger les domains depuis domain_impacts si nécessaire
+    } else if (!editingMood && open) {
+      // Réinitialiser pour un nouveau mood
+      setScoreGlobal(5);
+      setSelectedEmotions([]);
+      setNote('');
+      setDomains({
+        travail: 0,
+        sport: 0,
+        amour: 0,
+        amis: 0,
+        famille: 0,
+        finances: 0,
+        loisirs: 0,
+        bienetre: 0,
+      });
+      setStep(1);
+    }
+  }, [editingMood, open]);
 
   const handleDomainChange = (domain: DomainType, value: number) => {
     setDomains((prev) => ({ ...prev, [domain]: value }));
@@ -49,13 +76,28 @@ export function MoodModal({ open, onOpenChange, weather }: MoodModalProps) {
       .filter(([, impact]) => impact !== 0)
       .map(([domain, impact]) => ({ domain, impact }));
 
-    addMood({
-      score_global: scoreGlobal,
-      emotions: selectedEmotions,
-      note: note || undefined,
-      weather: weather || undefined,
-      domains: domainsToSave,
-    });
+    if (editingMood) {
+      // ✅ MODE ÉDITION
+      updateMood({
+        id: editingMood.id,
+        updates: {
+          score_global: scoreGlobal,
+          emotions: selectedEmotions,
+          note: note || undefined,
+          weather: weather || undefined,
+          domains: domainsToSave,
+        },
+      });
+    } else {
+      // ✅ MODE AJOUT
+      addMood({
+        score_global: scoreGlobal,
+        emotions: selectedEmotions,
+        note: note || undefined,
+        weather: weather || undefined,
+        domains: domainsToSave,
+      });
+    }
 
     // Reset form
     setStep(1);
@@ -87,7 +129,9 @@ export function MoodModal({ open, onOpenChange, weather }: MoodModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onClose={() => onOpenChange(false)} className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Comment te sens-tu ?</DialogTitle>
+          <DialogTitle>
+            {editingMood ? 'Modifier le mood' : 'Comment te sens-tu ?'}
+          </DialogTitle>
           <DialogDescription>
             Étape {step} sur 4
           </DialogDescription>
@@ -186,8 +230,12 @@ export function MoodModal({ open, onOpenChange, weather }: MoodModalProps) {
           {step < 4 ? (
             <Button onClick={() => setStep(step + 1)}>Suivant</Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={isAdding}>
-              {isAdding ? 'Enregistrement...' : 'Enregistrer'}
+            <Button onClick={handleSubmit} disabled={isAdding || isUpdating}>
+              {isAdding || isUpdating
+                ? 'Enregistrement...'
+                : editingMood
+                ? 'Modifier'
+                : 'Enregistrer'}
             </Button>
           )}
         </div>

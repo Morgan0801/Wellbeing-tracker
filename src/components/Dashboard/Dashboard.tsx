@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { MoodModal } from '@/components/Mood/MoodModal';
@@ -176,7 +176,8 @@ export function Dashboard() {
       <MoodHistory />
 
       {/* Modal */}
-      <MoodModal open={isMoodModalOpen} onOpenChange={setIsMoodModalOpen} />
+      <MoodModal open={isMoodModalOpen} onOpenChange={setIsMoodModalOpen}
+       weather={null}	  />
     </div>
   );
 }

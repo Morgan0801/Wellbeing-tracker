@@ -67,7 +67,7 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
     };
 
     if (editSleep) {
-      updateSleepLog(editSleep.id, sleepData);
+      updateSleepLog({ id: editSleep.id, ...sleepData });
     } else {
       addSleepLog(sleepData);
     }

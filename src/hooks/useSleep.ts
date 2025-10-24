@@ -29,20 +29,19 @@ export function useSleep() {
       const currentUser = user;
       if (!currentUser) throw new Error('Not authenticated');
 
-      // ✅ CORRECTIF: Utiliser wakeup_time au lieu de wake_time
       const { data, error } = await supabase
         .from('sleep_logs')
         .insert([{
           user_id: currentUser.id,
           date: sleepData.date,
           bedtime: sleepData.bedtime,
-          wakeup_time: sleepData.wakeup_time, // ✅ CORRIGÉ
+          wakeup_time: sleepData.wakeup_time,
           total_hours: sleepData.total_hours,
           rem_hours: sleepData.rem_hours,
           deep_hours: sleepData.deep_hours,
           avg_heart_rate: sleepData.avg_heart_rate,
           quality_score: sleepData.quality_score,
-          notes: sleepData.notes,
+		  notes: sleepData.notes,
         }])
         .select()
         .single();
@@ -58,19 +57,18 @@ export function useSleep() {
   // Mettre à jour un log de sommeil
   const updateSleepLog = useMutation({
     mutationFn: async ({ id, ...sleepData }: Partial<SleepLog> & { id: string }) => {
-      // ✅ CORRECTIF: Utiliser wakeup_time au lieu de wake_time
       const { data, error } = await supabase
         .from('sleep_logs')
         .update({
           date: sleepData.date,
           bedtime: sleepData.bedtime,
-          wakeup_time: sleepData.wakeup_time, // ✅ CORRIGÉ
+          wakeup_time: sleepData.wakeup_time,
           total_hours: sleepData.total_hours,
           rem_hours: sleepData.rem_hours,
           deep_hours: sleepData.deep_hours,
           avg_heart_rate: sleepData.avg_heart_rate,
           quality_score: sleepData.quality_score,
-          notes: sleepData.notes,
+		  notes: sleepData.notes,
         })
         .eq('id', id)
         .select()
@@ -137,7 +135,8 @@ export function useSleep() {
   const getAverageREM = () => getAverages().avgREM;
   const getAverageDeep = () => getAverages().avgDeep;
   const getAverageHeartRate = () => getAverages().avgHeartRate;
-return {
+
+  return {
     sleepLogs,
     loading: isLoading,
     addSleepLog: addSleepLog.mutate,
