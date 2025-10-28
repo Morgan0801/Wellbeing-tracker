@@ -4,6 +4,8 @@ import { useAuthStore } from './stores/authStore';
 import { LoginPage } from './components/Auth/LoginPage';
 import { Header } from './components/Layout/Header';
 import { TabNavigation } from './components/Navigation/TabNavigation';
+import { BottomNavigation } from './components/Navigation/BottomNavigation';
+import { MenuPlus } from './components/Navigation/MenuPlus';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { HabitsPage } from './components/Habits/HabitsPage';
 import { TasksPage } from './components/Tasks/TasksPage';
@@ -30,6 +32,7 @@ const queryClient = new QueryClient({
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
 
   if (!isAuthenticated) {
     return (
@@ -44,8 +47,9 @@ function App() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-        
-        <main>
+
+        {/* Main content with padding bottom for mobile nav */}
+        <main className="pb-16 md:pb-0">
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'mood' && <Dashboard />}
           {activeTab === 'habits' && <HabitsPage />}
@@ -55,11 +59,26 @@ function App() {
           {activeTab === 'gratitude' && <GratitudePage />}
           {activeTab === 'moodboard' && <MoodboardPage />}
           {activeTab === 'gamification' && <GamificationPage />}
-		  {activeTab === 'insights' && <InsightsPage />}
+          {activeTab === 'insights' && <InsightsPage />}
           {activeTab === 'export' && <ExportPage />}
           {activeTab === 'notifications' && <NotificationsSettings />}
           {activeTab === 'theme' && <ThemeSettings />}
         </main>
+
+        {/* Bottom Navigation (Mobile only) */}
+        <BottomNavigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onPlusClick={() => setIsPlusMenuOpen(true)}
+        />
+
+        {/* Menu Plus (Drawer) */}
+        <MenuPlus
+          isOpen={isPlusMenuOpen}
+          onClose={() => setIsPlusMenuOpen(false)}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
       </div>
     </QueryClientProvider>
   );

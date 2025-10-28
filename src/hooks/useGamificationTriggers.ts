@@ -11,7 +11,6 @@ export function useGamificationTriggers() {
     if (!user?.id) return;
 
     try {
-      // Récupérer les données de gamification
       const { data: gamification } = await supabase
         .from('user_gamification')
         .select('badges, level, streak_days')
@@ -20,17 +19,18 @@ export function useGamificationTriggers() {
 
       if (!gamification) return;
 
-      const earnedBadgeIds = (gamification.badges || []).map((b: any) => b.id);
+      const existingBadges = gamification.badges || [];
+      const existingMap = new Map(existingBadges.map((badge: any) => [badge.id, badge]));
 
-      // Récupérer les stats pour vérifier les conditions
       const { count: moodCount } = await supabase
         .from('moods')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
       const { count: habitCount } = await supabase
-  .from('habit_logs')
-  .select('id', { count: 'exact', head: true });
+        .from('habit_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
 
       const { count: taskCount } = await supabase
         .from('tasks')
@@ -49,141 +49,115 @@ export function useGamificationTriggers() {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
-      // Vérifier chaque badge
-      const badgesToUnlock: any[] = [];
+      const { data: recentMoods } = await supabase
+        .from('moods')
+        .select('datetime')
+        .eq('user_id', user.id)
+        .order('datetime', { ascending: false })
+        .limit(7);
 
-      // Premier Mood
-      if (!earnedBadgeIds.includes('first_mood')     && (moodCount ?? 0) >= 1) {
-        badgesToUnlock.push({
+      let hasMoodWeek = false;
+      if (recentMoods && recentMoods.length >= 7) {
+        const dates = recentMoods.map((m) => new Date(m.datetime).toDateString());
+        const uniqueDates = [...new Set(dates)];
+        hasMoodWeek = uniqueDates.length >= 7;
+      }
+
+      const managedBadgeDefinitions = [
+        {
           id: 'first_mood',
           name: 'Premier Mood',
           description: 'Enregistrer son premier mood',
           emoji: '🎭',
-          earned_at: new Date().toISOString(),
-        });
-      }
-
-      // Mood Hebdo (7 jours consécutifs)
-      if (!earnedBadgeIds.includes('mood_week')) {
-        const { data: recentMoods } = await supabase
-          .from('moods')
-          .select('datetime')
-          .eq('user_id', user.id)
-          .order('datetime', { ascending: false })
-          .limit(7);
-
-        if (recentMoods && recentMoods.length >= 7) {
-          const dates = recentMoods.map((m) => new Date(m.datetime).toDateString());
-          const uniqueDates = [...new Set(dates)];
-          if (uniqueDates.length >= 7) {
-            badgesToUnlock.push({
-              id: 'mood_week',
-              name: 'Mood Hebdo',
-              description: 'Enregistrer son mood 7 jours consécutifs',
-              emoji: '📅',
-              earned_at: new Date().toISOString(),
-            });
-          }
-        }
-      }
-
-      // Maître des Habitudes
-      if (!earnedBadgeIds.includes('habit_master')   && (habitCount ?? 0) >= 30) {
-        badgesToUnlock.push({
+          eligible: () => (moodCount ?? 0) >= 1,
+        },
+        {
+          id: 'mood_week',
+          name: 'Mood Hebdo',
+          description: 'Enregistrer son mood 7 jours consecutifs',
+          emoji: '📅',
+          eligible: () => hasMoodWeek,
+        },
+        {
           id: 'habit_master',
-          name: 'Maître des Habitudes',
-          description: 'Compléter 30 habitudes',
+          name: 'Maitre des Habitudes',
+          description: 'Completer 30 habitudes',
           emoji: '💪',
-          earned_at: new Date().toISOString(),
-        });
-      }
-
-      // Chasseur de Tâches
-      if (!earnedBadgeIds.includes('task_slayer')    && (taskCount ?? 0) >= 50) {
-        badgesToUnlock.push({
+          eligible: () => (habitCount ?? 0) >= 30,
+        },
+        {
           id: 'task_slayer',
-          name: 'Chasseur de Tâches',
-          description: 'Compléter 50 tâches',
+          name: 'Chasseur de Taches',
+          description: 'Completer 50 taches',
           emoji: '✅',
-          earned_at: new Date().toISOString(),
-        });
-      }
-
-      // Réalisateur d'Objectifs
-      if (!earnedBadgeIds.includes('goal_achiever')  && (goalCount ?? 0) >= 5) {
-        badgesToUnlock.push({
+          eligible: () => (taskCount ?? 0) >= 50,
+        },
+        {
           id: 'goal_achiever',
-          name: "Réalisateur d'Objectifs",
-          description: 'Compléter 5 objectifs',
+          name: "Realisateur d'Objectifs",
+          description: 'Completer 5 objectifs',
           emoji: '🎯',
-          earned_at: new Date().toISOString(),
-        });
-      }
-
-      // Guru de la Gratitude
-    if (!earnedBadgeIds.includes('gratitude_guru') && (gratitudeCount ?? 0) >= 14) {
-        badgesToUnlock.push({
+          eligible: () => (goalCount ?? 0) >= 5,
+        },
+        {
           id: 'gratitude_guru',
           name: 'Guru de la Gratitude',
-          description: 'Écrire 14 jours de gratitude',
+          description: 'Ecrire 14 jours de gratitude',
           emoji: '🙏',
-          earned_at: new Date().toISOString(),
-        });
-      }
-
-      // Niveau 5
-      if (!earnedBadgeIds.includes('level_5') && gamification.level >= 5) {
-        badgesToUnlock.push({
+          eligible: () => (gratitudeCount ?? 0) >= 14,
+        },
+        {
           id: 'level_5',
           name: 'Niveau 5',
           description: 'Atteindre le niveau 5',
           emoji: '⭐',
-          earned_at: new Date().toISOString(),
-        });
-      }
-
-      // Niveau 10
-      if (!earnedBadgeIds.includes('level_10') && gamification.level >= 10) {
-        badgesToUnlock.push({
+          eligible: () => gamification.level >= 5,
+        },
+        {
           id: 'level_10',
           name: 'Niveau 10',
           description: 'Atteindre le niveau 10',
           emoji: '🌟',
-          earned_at: new Date().toISOString(),
-        });
-      }
-
-      // Série de 7
-      if (!earnedBadgeIds.includes('streak_7') && gamification.streak_days >= 7) {
-        badgesToUnlock.push({
+          eligible: () => gamification.level >= 10,
+        },
+        {
           id: 'streak_7',
-          name: 'Série de 7',
-          description: "7 jours d'activité consécutifs",
+          name: 'Serie de 7',
+          description: "7 jours d'activite consecutifs",
           emoji: '🔥',
-          earned_at: new Date().toISOString(),
-        });
-      }
-
-      // Série de 30
-      if (!earnedBadgeIds.includes('streak_30') && gamification.streak_days >= 30) {
-        badgesToUnlock.push({
+          eligible: () => gamification.streak_days >= 7,
+        },
+        {
           id: 'streak_30',
-          name: 'Série de 30',
-          description: "30 jours d'activité consécutifs",
+          name: 'Serie de 30',
+          description: "30 jours d'activite consecutifs",
           emoji: '🏆',
-          earned_at: new Date().toISOString(),
-        });
+          eligible: () => gamification.streak_days >= 30,
+        },
+      ];
+
+      const managedBadgeIds = new Set(managedBadgeDefinitions.map((badge) => badge.id));
+      const preservedBadges = existingBadges.filter((badge: any) => !managedBadgeIds.has(badge.id));
+      const updatedBadges = [...preservedBadges];
+      const now = new Date().toISOString();
+
+      for (const badge of managedBadgeDefinitions) {
+        if (!badge.eligible()) continue;
+
+        const existing = existingMap.get(badge.id);
+        if (existing) {
+          updatedBadges.push(existing);
+        } else {
+          updatedBadges.push({ ...badge, earned_at: now });
+        }
       }
 
-      // Débloquer tous les nouveaux badges
-      if (badgesToUnlock.length > 0) {
-        const updatedBadges = [...(gamification.badges || []), ...badgesToUnlock];
+      if (JSON.stringify(existingBadges) !== JSON.stringify(updatedBadges)) {
         await supabase
           .from('user_gamification')
           .update({ badges: updatedBadges })
           .eq('user_id', user.id);
 
-        // Invalider le cache pour recharger les données
         queryClient.invalidateQueries({ queryKey: ['gamification'] });
       }
     } catch (error) {
@@ -198,3 +172,4 @@ export function useGamificationTriggers() {
 
   return { checkAndUnlockBadges };
 }
+

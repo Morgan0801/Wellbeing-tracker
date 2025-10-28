@@ -10,16 +10,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useHabits } from '@/hooks/useHabits';
-import { Habit, HABIT_CATEGORIES, HABIT_FREQUENCIES } from '@/types';
+import { Habit, HabitCategory, HABIT_CATEGORIES, HABIT_FREQUENCIES } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface HabitModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editHabit?: Habit;
+  defaultCategory?: HabitCategory;
 }
 
-export function HabitModal({ open, onOpenChange, editHabit }: HabitModalProps) {
+const defaultColorForCategory = (category: HabitCategory) =>
+  HABIT_CATEGORIES.find((cat) => cat.type === category)?.color ?? '#66BB6A';
+
+export function HabitModal({ open, onOpenChange, editHabit, defaultCategory = 'sante_sport' }: HabitModalProps) {
   const { addHabit, updateHabit, isAddingHabit } = useHabits();
 
   const [name, setName] = useState('');
@@ -40,13 +44,13 @@ export function HabitModal({ open, onOpenChange, editHabit }: HabitModalProps) {
     } else {
       // Reset
       setName('');
-      setCategory('sante_sport');
+      setCategory(defaultCategory);
       setFrequency('daily');
       setQuantifiable(false);
       setUnit('');
-      setColor('#66BB6A');
+      setColor(defaultColorForCategory(defaultCategory));
     }
-  }, [editHabit, open]);
+  }, [editHabit, open, defaultCategory]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

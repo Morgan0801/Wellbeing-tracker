@@ -1,19 +1,25 @@
-import { useState, useMemo } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
+﻿import { useState, useMemo } from 'react';
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
   Activity,
   Moon,
   Target,
   Heart,
-  Filter
+  Filter,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useMood } from '@/hooks/useMood';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
+import { MoodHeatmapCalendar } from './MoodHeatmapCalendar';
+import { SleepHeatmapCalendar } from './SleepHeatmapCalendar';
+import { SleepMoodCorrelation } from './SleepMoodCorrelation';
+import { ShareInsightsButton } from './ShareInsightsButton';
 
 interface DomainImpact {
   domain: string;
@@ -26,6 +32,7 @@ interface HabitLog {
   date: string;
   completed: boolean;
   quantity: number;
+  habit_id?: string;
   habit: {
     name: string;
     category: string;
@@ -56,11 +63,82 @@ const DOMAIN_LABELS: Record<string, { label: string; emoji: string }> = {
 
 type PeriodType = '7days' | '30days' | '90days';
 
+type HeatmapMetricKey = 'mood' | 'sleepHours' | 'sleepQuality';
+
+interface HabitHeatmapRow {
+  id: string;
+  name: string;
+  category: string;
+  daysTracked: number;
+  metrics: Record<
+    HeatmapMetricKey,
+    {
+      change: number | null;
+      withAverage: number | null;
+      withoutAverage: number | null;
+    }
+  >;
+}
+
+const toDateKey = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.split('T')[0] ?? value;
+  }
+  return date.toISOString().split('T')[0];
+};
+
+const computeAverage = (values: number[]) =>
+  values.length ? values.reduce((sum, item) => sum + item, 0) / values.length : null;
+
+const computePercentageChange = (withAverage: number | null, withoutAverage: number | null) => {
+  if (withAverage === null || withoutAverage === null) return null;
+  if (Math.abs(withoutAverage) < 0.001) return null;
+  return ((withAverage - withoutAverage) / Math.abs(withoutAverage)) * 100;
+};
+
+const formatPercentageChange = (value: number | null) => {
+  if (value === null || Number.isNaN(value)) return '--';
+  const rounded = Math.round(value);
+  const prefix = rounded > 0 ? '+' : '';
+  return `${prefix}${rounded}%`;
+};
+
+const formatAverageValue = (value: number | null, decimals: number) => {
+  if (value === null || Number.isNaN(value)) return '--';
+  return value.toFixed(decimals);
+};
+
+const heatmapClassName = (value: number | null) => {
+  if (value === null || Number.isNaN(value)) {
+    return 'bg-muted text-muted-foreground';
+  }
+  if (value >= 20) return 'bg-green-500/30 text-green-900 dark:text-green-200';
+  if (value >= 10) return 'bg-green-500/20 text-green-700 dark:text-green-200';
+  if (value > 0) return 'bg-green-500/10 text-green-600 dark:text-green-200';
+  if (value <= -20) return 'bg-red-500/30 text-red-900 dark:text-red-200';
+  if (value <= -10) return 'bg-red-500/20 text-red-700 dark:text-red-200';
+  if (value < 0) return 'bg-red-500/10 text-red-600 dark:text-red-200';
+  return 'bg-muted text-muted-foreground';
+};
+
+const HEATMAP_METRICS: { key: HeatmapMetricKey; label: string; helper: string; decimals: number }[] = [
+  { key: 'mood', label: 'Humeur', helper: 'Difference de la note moyenne (/10).', decimals: 1 },
+  { key: 'sleepHours', label: 'Sommeil (h)', helper: 'Variation de la duree moyenne de sommeil.', decimals: 1 },
+  {
+    key: 'sleepQuality',
+    label: 'Qualite sommeil',
+    helper: 'Variation du score moyen de qualite (/5).',
+    decimals: 1,
+  },
+];
 export function InsightsPage() {
   const { user } = useAuthStore();
   const { moods } = useMood();
-  
+
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('30days');
+  const [correlationView, setCorrelationView] = useState<'grid' | 'list'>('grid');
+  const [heatmapPeriod, setHeatmapPeriod] = useState<30 | 90>(90);
 
   // Calculer la date de début selon la période
   const startDate = useMemo(() => {
@@ -78,6 +156,14 @@ export function InsightsPage() {
     }
     return date.toISOString();
   }, [selectedPeriod]);
+
+  const filteredMoods = useMemo(() => {
+    const threshold = new Date(startDate);
+    return moods.filter((mood) => {
+      const timestamp = new Date(mood.datetime);
+      return !Number.isNaN(timestamp.getTime()) && timestamp >= threshold;
+    });
+  }, [moods, startDate]);
 
   // Récupérer les mood_domains
   const { data: domainImpacts = [] } = useQuery({
@@ -106,6 +192,7 @@ export function InsightsPage() {
           date,
           completed,
           quantity,
+          habit_id,
           habit:habits(name, category)
         `)
         .gte('date', startDate.split('T')[0])
@@ -131,6 +218,15 @@ export function InsightsPage() {
     },
     enabled: !!user?.id,
   });
+
+  const sleepByDate = useMemo(() => {
+    const map = new Map<string, { hours: number; quality: number }>();
+    sleepLogs.forEach((log) => {
+      const dateKey = toDateKey(log.date);
+      map.set(dateKey, { hours: log.total_hours, quality: log.quality_score });
+    });
+    return map;
+  }, [sleepLogs]);
 
   // Récupérer les tâches complétées
   const { data: completedTasks = [] } = useQuery({
@@ -192,13 +288,123 @@ export function InsightsPage() {
       .sort((a, b) => Math.abs(b.avgImpact) - Math.abs(a.avgImpact));
   }, [domainImpacts]);
 
-  // 2. Corrélation Sommeil & Humeur
+  const habitCorrelationHeatmap = useMemo(() => {
+    if (habitLogs.length === 0) return [] as HabitHeatmapRow[];
+
+    const habits = new Map<string, { id: string; name: string; category: string; dates: Set<string> }>();
+
+    habitLogs.forEach((log) => {
+      const dateKey = toDateKey(log.date);
+      const habitName = log.habit?.name ?? "Habitude";
+      const habitCategory = log.habit?.category ?? "Autre";
+      const habitId = log.habit_id ?? [habitName, habitCategory].join("::");
+
+      const existing = habits.get(habitId) ?? {
+        id: habitId,
+        name: habitName,
+        category: habitCategory,
+        dates: new Set<string>(),
+      };
+
+      existing.dates.add(dateKey);
+      existing.name = habitName;
+      existing.category = habitCategory;
+
+      habits.set(habitId, existing);
+    });
+
+    if (habits.size === 0) return [] as HabitHeatmapRow[];
+
+    const moodByDate = new Map<string, number>();
+    filteredMoods.forEach((mood) => {
+      moodByDate.set(toDateKey(mood.datetime), mood.score_global);
+    });
+
+    const rows: HabitHeatmapRow[] = [];
+
+    habits.forEach((habit) => {
+      if (habit.dates.size === 0) return;
+
+      const moodWith: number[] = [];
+      const moodWithout: number[] = [];
+
+      moodByDate.forEach((value, dateKey) => {
+        if (habit.dates.has(dateKey)) {
+          moodWith.push(value);
+        } else {
+          moodWithout.push(value);
+        }
+      });
+
+      const sleepHoursWith: number[] = [];
+      const sleepHoursWithout: number[] = [];
+      const sleepQualityWith: number[] = [];
+      const sleepQualityWithout: number[] = [];
+
+      sleepByDate.forEach((value, dateKey) => {
+        if (habit.dates.has(dateKey)) {
+          sleepHoursWith.push(value.hours);
+          sleepQualityWith.push(value.quality);
+        } else {
+          sleepHoursWithout.push(value.hours);
+          sleepQualityWithout.push(value.quality);
+        }
+      });
+
+      const moodWithAvg = computeAverage(moodWith);
+      const moodWithoutAvg = computeAverage(moodWithout);
+      const sleepHoursWithAvg = computeAverage(sleepHoursWith);
+      const sleepHoursWithoutAvg = computeAverage(sleepHoursWithout);
+      const sleepQualityWithAvg = computeAverage(sleepQualityWith);
+      const sleepQualityWithoutAvg = computeAverage(sleepQualityWithout);
+
+      if (
+        moodWithAvg === null &&
+        sleepHoursWithAvg === null &&
+        sleepQualityWithAvg === null
+      ) {
+        return;
+      }
+
+      rows.push({
+        id: habit.id,
+        name: habit.name,
+        category: habit.category,
+        daysTracked: habit.dates.size,
+        metrics: {
+          mood: {
+            change: computePercentageChange(moodWithAvg, moodWithoutAvg),
+            withAverage: moodWithAvg,
+            withoutAverage: moodWithoutAvg,
+          },
+          sleepHours: {
+            change: computePercentageChange(sleepHoursWithAvg, sleepHoursWithoutAvg),
+            withAverage: sleepHoursWithAvg,
+            withoutAverage: sleepHoursWithoutAvg,
+          },
+          sleepQuality: {
+            change: computePercentageChange(sleepQualityWithAvg, sleepQualityWithoutAvg),
+            withAverage: sleepQualityWithAvg,
+            withoutAverage: sleepQualityWithoutAvg,
+          },
+        },
+      });
+    });
+
+    return rows.sort((a, b) => {
+      const aValue = a.metrics.mood.change ?? -Infinity;
+      const bValue = b.metrics.mood.change ?? -Infinity;
+      return bValue - aValue;
+    });
+  }, [habitLogs, filteredMoods, sleepByDate]);
+
+// 2. Corrélation Sommeil & Humeur
   const sleepMoodCorrelation = useMemo(() => {
-    if (sleepLogs.length === 0 || moods.length === 0) return null;
+    if (sleepLogs.length === 0 || filteredMoods.length === 0) return null;
 
     // Grouper moods par date
     const moodsByDate = new Map(
-      moods.map(mood => [
+      filteredMoods.map(mood => [
         new Date(mood.datetime).toISOString().split('T')[0],
         mood.score_global
       ])
@@ -242,15 +448,15 @@ export function InsightsPage() {
     }).filter(Boolean);
 
     return rangeStats;
-  }, [sleepLogs, moods]);
+  }, [sleepLogs, filteredMoods]);
 
   // 3. Corrélation Habitudes & Humeur
   const habitMoodCorrelation = useMemo(() => {
-    if (habitLogs.length === 0 || moods.length === 0) return [];
+    if (habitLogs.length === 0 || filteredMoods.length === 0) return [];
 
     // Grouper moods par date
     const moodsByDate = new Map(
-      moods.map(mood => [
+      filteredMoods.map(mood => [
         new Date(mood.datetime).toISOString().split('T')[0],
         mood.score_global
       ])
@@ -278,11 +484,11 @@ export function InsightsPage() {
         count: scores.length,
       }))
       .sort((a, b) => parseFloat(b.avgMood) - parseFloat(a.avgMood));
-  }, [habitLogs, moods]);
+  }, [habitLogs, filteredMoods]);
 
   // 4. Productivité & Humeur (par quadrant Eisenhower)
   const tasksMoodCorrelation = useMemo(() => {
-    if (completedTasks.length === 0 || moods.length === 0) return null;
+    if (completedTasks.length === 0 || filteredMoods.length === 0) return null;
 
     const quadrantLabels: Record<number, string> = {
       1: 'Urgent & Important',
@@ -292,7 +498,7 @@ export function InsightsPage() {
     };
 
     const moodsByDate = new Map(
-      moods.map(mood => [
+      filteredMoods.map(mood => [
         new Date(mood.datetime).toISOString().split('T')[0],
         mood.score_global
       ])
@@ -321,13 +527,13 @@ export function InsightsPage() {
         count: stats.count,
       }))
       .sort((a, b) => parseFloat(b.avgMood) - parseFloat(a.avgMood));
-  }, [completedTasks, moods]);
+  }, [completedTasks, filteredMoods]);
 
   // Séparer impacts positifs et négatifs
   const positiveCorrelations = domainAnalysis.filter((c) => c.avgImpact > 0);
   const negativeCorrelations = domainAnalysis.filter((c) => c.avgImpact < 0);
 
-  if (moods.length === 0) {
+  if (filteredMoods.length === 0) {
     return (
       <div className="container mx-auto p-4 pb-24 md:pb-4">
         <div className="text-center py-12">
@@ -343,157 +549,203 @@ export function InsightsPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 pb-24 md:pb-4 space-y-6">
+    <div className="container mx-auto p-3 md:p-4 pb-20 md:pb-4 space-y-4 md:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-blue-500" />
-          Insights & Analyses Croisées
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Découvre les corrélations entre tes données
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-blue-500" />
+            Insights & Analyses
+          </h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1">
+            Corrélations entre tes données
+          </p>
+        </div>
+        {/* Share Button */}
+        <ShareInsightsButton targetId="insights-shareable" filename="mes-insights" />
       </div>
 
       {/* Filtres */}
-      <div className="flex flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-gray-600">Période :</span>
+      <div className="flex flex-wrap gap-1.5 md:gap-2 items-center">
+        <div className="flex items-center gap-1 md:gap-2">
+          <Filter className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+          <span className="text-xs md:text-sm font-medium text-gray-600">Période :</span>
         </div>
         {(['7days', '30days', '90days'] as PeriodType[]).map((period) => (
           <button
             key={period}
             onClick={() => setSelectedPeriod(period)}
-            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-2 md:px-3 py-0.5 md:py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
               selectedPeriod === period
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {period === '7days' && '7 jours'}
-            {period === '30days' && '30 jours'}
-            {period === '90days' && '90 jours'}
+            {period === '7days' && '7j'}
+            {period === '30days' && '30j'}
+            {period === '90days' && '90j'}
           </button>
         ))}
       </div>
 
-      {/* Résumé */}
-      <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
-        <CardContent className="py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-blue-600">{moods.length}</div>
-              <div className="text-xs text-gray-600">Moods</div>
+      {/* Shareable Content Wrapper */}
+      <div id="insights-shareable" className="space-y-4 md:space-y-6">
+        {/* Résumé */}
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+          <CardContent className="py-3 md:py-4 px-3 md:px-4">
+            <h2 className="text-sm md:text-base font-bold text-blue-900 dark:text-blue-100 mb-2 md:mb-3 text-center">
+              📊 Mon Wellbeing - Résumé
+            </h2>
+            <div className="grid grid-cols-4 gap-2 md:gap-4 text-center">
+              <div>
+                <div className="text-xl md:text-2xl font-bold text-blue-600">{moods.length}</div>
+                <div className="text-[10px] md:text-xs text-gray-600">Moods</div>
+              </div>
+              <div>
+                <div className="text-xl md:text-2xl font-bold text-green-600">{habitLogs.length}</div>
+                <div className="text-[10px] md:text-xs text-gray-600">Habitudes</div>
+              </div>
+              <div>
+                <div className="text-xl md:text-2xl font-bold text-purple-600">{sleepLogs.length}</div>
+                <div className="text-[10px] md:text-xs text-gray-600">Nuits</div>
+              </div>
+              <div>
+                <div className="text-xl md:text-2xl font-bold text-orange-600">{completedTasks.length}</div>
+                <div className="text-[10px] md:text-xs text-gray-600">Tâches</div>
+              </div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-green-600">{habitLogs.length}</div>
-              <div className="text-xs text-gray-600">Habitudes</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-purple-600">{sleepLogs.length}</div>
-              <div className="text-xs text-gray-600">Nuits</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-orange-600">{completedTasks.length}</div>
-              <div className="text-xs text-gray-600">Tâches</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+      {/* Period selector for heatmaps */}
+      <div className="flex items-center justify-center gap-2">
+        <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Période :</span>
+        <button
+          onClick={() => setHeatmapPeriod(30)}
+          className={`px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+            heatmapPeriod === 30
+              ? 'bg-purple-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+          }`}
+        >
+          30j
+        </button>
+        <button
+          onClick={() => setHeatmapPeriod(90)}
+          className={`px-2 md:px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+            heatmapPeriod === 90
+              ? 'bg-purple-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+          }`}
+        >
+          90j
+        </button>
+      </div>
+
+      {/* Heatmaps: Mood & Sleep side by side even on mobile */}
+      <div className="grid grid-cols-2 gap-2 md:gap-4 lg:gap-6">
+        <MoodHeatmapCalendar period={heatmapPeriod} />
+        <SleepHeatmapCalendar period={heatmapPeriod} />
+      </div>
+
+      {/* Sleep vs Mood Correlation */}
+      <SleepMoodCorrelation />
+      </div>
 
       {/* 1. DOMAINES & HUMEUR */}
       <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Heart className="w-5 h-5 text-pink-500" />
+        <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4 flex items-center gap-2">
+          <Heart className="w-4 h-4 md:w-5 md:h-5 text-pink-500" />
           Domaines de vie & Humeur
         </h2>
 
-        {positiveCorrelations.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-md font-semibold mb-3 flex items-center gap-2 text-green-600">
-              <TrendingUp className="w-4 h-4" />
-              Impact positif
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {positiveCorrelations.map((corr) => (
-                <Card
-                  key={corr.domain}
-                  className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{corr.emoji}</span>
-                        <div>
-                          <div className="font-semibold">{corr.label}</div>
-                          <div className="text-xs text-gray-500">{corr.totalCount} mentions</div>
+        <div className="grid grid-cols-2 md:grid-cols-1 gap-3 md:gap-6">
+          {positiveCorrelations.length > 0 && (
+            <div>
+              <h3 className="text-xs md:text-md font-semibold mb-2 md:mb-3 flex items-center gap-1 md:gap-2 text-green-600">
+                <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Impact </span>positif
+              </h3>
+              <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-2 md:gap-3">
+                {positiveCorrelations.map((corr) => (
+                  <Card
+                    key={corr.domain}
+                    className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
+                  >
+                    <CardContent className="p-2 md:p-4">
+                      <div className="flex flex-col md:flex-row items-start md:justify-between mb-2 md:mb-3">
+                        <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-0">
+                          <span className="text-xl md:text-2xl">{corr.emoji}</span>
+                          <div>
+                            <div className="text-xs md:text-base font-semibold">{corr.label}</div>
+                            <div className="text-[9px] md:text-xs text-gray-500">{corr.totalCount} mentions</div>
+                          </div>
+                        </div>
+                        <div className="text-left md:text-right w-full md:w-auto">
+                          <div className="text-lg md:text-xl font-bold text-green-600">
+                            +{corr.avgImpact.toFixed(1)}
+                          </div>
+                          <div className="text-[9px] md:text-xs text-gray-500">
+                            {corr.positivePercent.toFixed(0)}% positif
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-green-600">
-                          +{corr.avgImpact.toFixed(1)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {corr.positivePercent.toFixed(0)}% positif
-                        </div>
+                      <div className="h-1.5 md:h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-400 to-green-600"
+                          style={{ width: `${(corr.avgImpact / 5) * 100}%` }}
+                        />
                       </div>
-                    </div>
-                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-green-400 to-green-600"
-                        style={{ width: `${(corr.avgImpact / 5) * 100}%` }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {negativeCorrelations.length > 0 && (
-          <div>
-            <h3 className="text-md font-semibold mb-3 flex items-center gap-2 text-red-600">
-              <TrendingDown className="w-4 h-4" />
-              Impact négatif
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {negativeCorrelations.map((corr) => (
-                <Card
-                  key={corr.domain}
-                  className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{corr.emoji}</span>
-                        <div>
-                          <div className="font-semibold">{corr.label}</div>
-                          <div className="text-xs text-gray-500">{corr.totalCount} mentions</div>
+          {negativeCorrelations.length > 0 && (
+            <div>
+              <h3 className="text-xs md:text-md font-semibold mb-2 md:mb-3 flex items-center gap-1 md:gap-2 text-red-600">
+                <TrendingDown className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Impact </span>négatif
+              </h3>
+              <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-2 md:gap-3">
+                {negativeCorrelations.map((corr) => (
+                  <Card
+                    key={corr.domain}
+                    className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
+                  >
+                    <CardContent className="p-2 md:p-4">
+                      <div className="flex flex-col md:flex-row items-start md:justify-between mb-2 md:mb-3">
+                        <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-0">
+                          <span className="text-xl md:text-2xl">{corr.emoji}</span>
+                          <div>
+                            <div className="text-xs md:text-base font-semibold">{corr.label}</div>
+                            <div className="text-[9px] md:text-xs text-gray-500">{corr.totalCount} mentions</div>
+                          </div>
+                        </div>
+                        <div className="text-left md:text-right w-full md:w-auto">
+                          <div className="text-lg md:text-xl font-bold text-red-600">
+                            {corr.avgImpact.toFixed(1)}
+                          </div>
+                          <div className="text-[9px] md:text-xs text-gray-500">
+                            {(100 - corr.positivePercent).toFixed(0)}% négatif
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-red-600">
-                          {corr.avgImpact.toFixed(1)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {(100 - corr.positivePercent).toFixed(0)}% négatif
-                        </div>
+                      <div className="h-1.5 md:h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-red-400 to-red-600"
+                          style={{ width: `${(Math.abs(corr.avgImpact) / 5) * 100}%` }}
+                        />
                       </div>
-                    </div>
-                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-red-400 to-red-600"
-                        style={{ width: `${(Math.abs(corr.avgImpact) / 5) * 100}%` }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 2. SOMMEIL & HUMEUR */}
@@ -535,28 +787,156 @@ export function InsightsPage() {
       )}
 
       {/* 3. HABITUDES & HUMEUR */}
-      {habitMoodCorrelation.length > 0 && (
+      {/* 3. HABITUDES & CORRELATIONS */}
+      {habitCorrelationHeatmap.length > 0 && (
         <div>
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
             <Activity className="w-5 h-5 text-green-500" />
-            Habitudes & Humeur
+            Habitudes & Correlations
           </h2>
           <Card>
-            <CardContent className="p-4">
-              <div className="space-y-2">
-                {habitMoodCorrelation.map((stat, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                  >
-                    <div>
-                      <div className="font-semibold capitalize">{stat.category}</div>
-                      <div className="text-xs text-gray-500">{stat.count} fois complété</div>
-                    </div>
-                    <div className="text-lg font-bold text-green-600">{stat.avgMood}/10</div>
+            <CardHeader className="space-y-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle className="text-lg font-semibold">Vue correlation</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">Periode</span>
+                    {( ['7days', '30days', '90days'] as PeriodType[]).map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => setSelectedPeriod(period)}
+                        className={`rounded-full px-3 py-1 text-sm transition ${
+                          selectedPeriod === period
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {period === '7days' ? '7 j' : period === '30days' ? '30 j' : '90 j'}
+                      </button>
+                    ))}
                   </div>
-                ))}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    Analyse l impact des habitudes sur ton humeur et ton sommeil dans la periode choisie.
+                  </p>
+                  <div className="inline-flex overflow-hidden rounded-md border">
+                    <button
+                      type="button"
+                      onClick={() => setCorrelationView('list')}
+                      className={`flex items-center gap-1 px-3 py-1 text-sm font-medium transition ${
+                        correlationView === 'list'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-background text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <List className="h-4 w-4" />
+                      Liste
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCorrelationView('grid')}
+                      className={`flex items-center gap-1 px-3 py-1 text-sm font-medium transition ${
+                        correlationView === 'grid'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-background text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                      Grille
+                    </button>
+                  </div>
+                </div>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {correlationView === 'grid' ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-border text-sm">
+                    <thead className="bg-muted/40">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Habitude</th>
+                        {HEATMAP_METRICS.map((metric) => (
+                          <th
+                            key={metric.key}
+                            className="px-4 py-2 text-left font-semibold text-muted-foreground"
+                          >
+                            {metric.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {habitCorrelationHeatmap.map((row) => (
+                        <tr key={row.id}>
+                          <td className="px-4 py-3">
+                            <div className="font-semibold">{row.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {row.category} - {row.daysTracked} jour{row.daysTracked > 1 ? 's' : ''} suivis
+                            </div>
+                          </td>
+                          {HEATMAP_METRICS.map((metric) => {
+                            const metricData = row.metrics[metric.key];
+                            return (
+                              <td key={`${row.id}-${metric.key}`} className="px-4 py-3">
+                                <div
+                                  className={`rounded-md px-3 py-2 text-center text-sm font-semibold ${heatmapClassName(
+                                    metricData.change
+                                  )}`}
+                                >
+                                  {formatPercentageChange(metricData.change)}
+                                  <div className="mt-1 text-xs font-normal text-muted-foreground">
+                                    Moy {formatAverageValue(metricData.withAverage, metric.decimals)}
+                                  </div>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {habitCorrelationHeatmap.map((row) => (
+                    <div
+                      key={`${row.id}-summary`}
+                      className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <div className="font-semibold">{row.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {row.category} - {row.daysTracked} jour{row.daysTracked > 1 ? 's' : ''} suivis
+                        </div>
+                      </div>
+                      <div className="grid w-full gap-2 text-sm sm:w-auto sm:grid-cols-3">
+                        {HEATMAP_METRICS.map((metric) => {
+                          const metricData = row.metrics[metric.key];
+                          return (
+                            <div
+                              key={`${row.id}-summary-${metric.key}`}
+                              className="rounded-md border border-border/50 px-2 py-1 text-center"
+                            >
+                              <div className="text-xs uppercase text-muted-foreground">{metric.label}</div>
+                              <div className={`font-semibold ${heatmapClassName(metricData.change)}`}>
+                                {formatPercentageChange(metricData.change)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Moy {formatAverageValue(metricData.withAverage, metric.decimals)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Les pourcentages comparent les jours avec l habitude et les autres jours pour la periode selectionnee.
+              </p>
             </CardContent>
           </Card>
         </div>

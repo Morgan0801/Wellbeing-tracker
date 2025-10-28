@@ -176,6 +176,8 @@ export interface ThemeColors {
   foreground: string;
   muted: string;
   border: string;
+  backgroundGradient?: string; // Gradient pour mode clair
+  backgroundGradientDark?: string; // Gradient pour mode sombre
 }
 
 export interface ThemeEffects {
@@ -198,6 +200,8 @@ export const PRESET_THEMES: PresetTheme[] = [
       foreground: '#0C4A6E',
       muted: '#BAE6FD',
       border: '#7DD3FC',
+      backgroundGradient: 'linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 50%, #DBEAFE 100%)',
+      backgroundGradientDark: 'linear-gradient(135deg, #0C2D48 0%, #082032 50%, #0A1929 100%)',
     },
   },
   {
@@ -212,6 +216,8 @@ export const PRESET_THEMES: PresetTheme[] = [
       foreground: '#14532D',
       muted: '#BBF7D0',
       border: '#86EFAC',
+      backgroundGradient: 'linear-gradient(135deg, #DCFCE7 0%, #F0FDF4 50%, #D9F99D 100%)',
+      backgroundGradientDark: 'linear-gradient(135deg, #0F2815 0%, #071C10 50%, #052108 100%)',
     },
   },
   {
@@ -226,6 +232,8 @@ export const PRESET_THEMES: PresetTheme[] = [
       foreground: '#7C2D12',
       muted: '#FED7AA',
       border: '#FDBA74',
+      backgroundGradient: 'linear-gradient(135deg, #FFEDD5 0%, #FFF7ED 40%, #FED7AA 100%)',
+      backgroundGradientDark: 'linear-gradient(135deg, #3E1F08 0%, #2C1506 50%, #1F0F04 100%)',
     },
   },
   {
@@ -240,6 +248,8 @@ export const PRESET_THEMES: PresetTheme[] = [
       foreground: '#581C87',
       muted: '#E9D5FF',
       border: '#D8B4FE',
+      backgroundGradient: 'linear-gradient(135deg, #F3E8FF 0%, #FAF5FF 50%, #E9D5FF 100%)',
+      backgroundGradientDark: 'linear-gradient(135deg, #2B1442 0%, #1F0E33 50%, #150A24 100%)',
     },
   },
   {
@@ -254,6 +264,8 @@ export const PRESET_THEMES: PresetTheme[] = [
       foreground: '#1E293B',
       muted: '#E2E8F0',
       border: '#CBD5E1',
+      backgroundGradient: 'linear-gradient(135deg, #F1F5F9 0%, #F8FAFC 50%, #E2E8F0 100%)',
+      backgroundGradientDark: 'linear-gradient(135deg, #1E293B 0%, #0F172A 50%, #020617 100%)',
     },
   },
   {
@@ -264,10 +276,12 @@ export const PRESET_THEMES: PresetTheme[] = [
       primary: '#3B82F6',
       secondary: '#2563EB',
       accent: '#60A5FA',
-      background: '#0F172A',
-      foreground: '#F1F5F9',
-      muted: '#1E293B',
-      border: '#334155',
+      background: '#F0F9FF',
+      foreground: '#0C4A6E',
+      muted: '#DBEAFE',
+      border: '#93C5FD',
+      backgroundGradient: 'linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 50%, #BFDBFE 100%)',
+      backgroundGradientDark: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0C1420 100%)',
     },
   },
   {
@@ -282,6 +296,8 @@ export const PRESET_THEMES: PresetTheme[] = [
       foreground: '#831843',
       muted: '#FBCFE8',
       border: '#F9A8D4',
+      backgroundGradient: 'linear-gradient(135deg, #FCE7F3 0%, #FDF2F8 50%, #FBCFE8 100%)',
+      backgroundGradientDark: 'linear-gradient(135deg, #3D0A26 0%, #2B0719 50%, #1A0410 100%)',
     },
   },
   {
@@ -292,10 +308,12 @@ export const PRESET_THEMES: PresetTheme[] = [
       primary: '#8B5CF6',
       secondary: '#7C3AED',
       accent: '#A78BFA',
-      background: '#18181B',
-      foreground: '#FAFAFA',
-      muted: '#27272A',
-      border: '#3F3F46',
+      background: '#FAF5FF',
+      foreground: '#5B21B6',
+      muted: '#E9D5FF',
+      border: '#C4B5FD',
+      backgroundGradient: 'linear-gradient(135deg, #EDE9FE 0%, #F5F3FF 50%, #DDD6FE 100%)',
+      backgroundGradientDark: 'linear-gradient(135deg, #18181B 0%, #27272A 50%, #0A0A0B 100%)',
     },
   },
 ];

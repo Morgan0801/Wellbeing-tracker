@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -20,10 +21,55 @@ interface TaskModalProps {
   editTask?: Task;
 }
 
-export function TaskModal({ open, onOpenChange, defaultQuadrant = 1, editTask }: TaskModalProps) {
-  const { addTask, updateTask, isAddingTask } = useTasks();
+const toIsoWithOffset = (offsetDays: number) => {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString();
+};
 
-  // Ref pour l'autofocus
+const toIso = (value?: string) => {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return undefined;
+  }
+  return parsed.toISOString();
+};
+
+const extractNaturalDeadline = (rawTitle: string, existingDeadline?: string) => {
+  let cleaned = rawTitle;
+  let derived: string | undefined;
+
+  const rules: Array<{ regex: RegExp; offset: number }> = [
+    { regex: /\b(today|aujourd'hui)\b/gi, offset: 0 },
+    { regex: /\b(demain|tomorrow)\b/gi, offset: 1 },
+  ];
+
+  rules.forEach(({ regex, offset }) => {
+    if (regex.test(cleaned)) {
+      derived = toIsoWithOffset(offset);
+      cleaned = cleaned.replace(regex, ' ');
+    }
+  });
+
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  const safeTitle = cleaned.length > 0 ? cleaned : rawTitle.trim();
+
+  return {
+    title: safeTitle,
+    deadline: derived ?? toIso(existingDeadline),
+    derived: Boolean(derived),
+  };
+};
+
+export function TaskModal({
+  open,
+  onOpenChange,
+  defaultQuadrant = 1,
+  editTask,
+}: TaskModalProps) {
+  const { addTask, updateTask, isAddingTask } = useTasks();
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState('');
@@ -32,17 +78,14 @@ export function TaskModal({ open, onOpenChange, defaultQuadrant = 1, editTask }:
   const [deadline, setDeadline] = useState('');
   const [recurring, setRecurring] = useState(false);
 
-  // Effet pour remplir le formulaire en mode édition ou reset en mode création
   useEffect(() => {
     if (editTask && open) {
-      // Mode édition : pré-remplir avec les données de la tâche
       setTitle(editTask.title);
       setQuadrant(editTask.quadrant);
-      setHasDeadline(!!editTask.deadline);
-      setDeadline(editTask.deadline || '');
+      setHasDeadline(Boolean(editTask.deadline));
+      setDeadline(editTask.deadline ? format(new Date(editTask.deadline), "yyyy-MM-dd'T'HH:mm") : '');
       setRecurring(editTask.recurring);
     } else if (open) {
-      // Mode création : reset + utiliser defaultQuadrant
       setTitle('');
       setQuadrant(defaultQuadrant);
       setHasDeadline(false);
@@ -51,43 +94,45 @@ export function TaskModal({ open, onOpenChange, defaultQuadrant = 1, editTask }:
     }
   }, [editTask, open, defaultQuadrant]);
 
-  // Autofocus sur le champ titre quand le modal s'ouvre
   useEffect(() => {
     if (open) {
-      setTimeout(() => {
-        titleInputRef.current?.focus();
-      }, 100);
+      setTimeout(() => titleInputRef.current?.focus(), 100);
     }
   }, [open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    const { title: cleanTitle, deadline: smartDeadline, derived } = extractNaturalDeadline(
+      title,
+      hasDeadline ? deadline : undefined,
+    );
+
+    const finalDeadline = smartDeadline;
+    const shouldPersistDeadline = Boolean(finalDeadline) || hasDeadline || derived;
 
     if (editTask) {
-      // Mode édition : mettre à jour la tâche existante
       updateTask({
         id: editTask.id,
         updates: {
-          title,
+          title: cleanTitle,
           quadrant,
-          deadline: hasDeadline ? deadline : undefined,
+          deadline: shouldPersistDeadline ? finalDeadline : undefined,
           recurring,
           recurrence_pattern: recurring ? 'weekly' : undefined,
         },
       });
     } else {
-      // Mode création : ajouter une nouvelle tâche
       addTask({
-        title,
+        title: cleanTitle,
         quadrant,
-        deadline: hasDeadline ? deadline : undefined,
+        deadline: shouldPersistDeadline ? finalDeadline : undefined,
         recurring,
         recurrence_pattern: recurring ? 'weekly' : undefined,
         completed: false,
       });
     }
 
-    // Fermer le modal
     onOpenChange(false);
   };
 
@@ -95,27 +140,23 @@ export function TaskModal({ open, onOpenChange, defaultQuadrant = 1, editTask }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onClose={() => onOpenChange(false)} className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {editTask ? 'Modifier la tâche' : 'Nouvelle tâche'}
-          </DialogTitle>
+          <DialogTitle>{editTask ? 'Modifier la tâche' : 'Nouvelle tâche'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          {/* Titre */}
           <div className="space-y-2">
             <Label htmlFor="title">Titre de la tâche</Label>
             <Input
               id="title"
               ref={titleInputRef}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Appeler le dentiste"
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Ex : Appeler le dentiste"
               required
               autoComplete="off"
             />
           </div>
 
-          {/* Quadrant */}
           <div className="space-y-2">
             <Label>Quadrant (Eisenhower)</Label>
             <div className="grid grid-cols-2 gap-2">
@@ -128,7 +169,7 @@ export function TaskModal({ open, onOpenChange, defaultQuadrant = 1, editTask }:
                     'p-3 rounded-lg border-2 text-left transition-all',
                     quadrant === q.id
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300',
                   )}
                 >
                   <div className="text-2xl mb-1">{q.emoji}</div>
@@ -139,7 +180,6 @@ export function TaskModal({ open, onOpenChange, defaultQuadrant = 1, editTask }:
             </div>
           </div>
 
-          {/* Deadline */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Deadline</Label>
@@ -149,20 +189,23 @@ export function TaskModal({ open, onOpenChange, defaultQuadrant = 1, editTask }:
               <Input
                 type="datetime-local"
                 value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                required={hasDeadline}
+                onChange={(event) => setDeadline(event.target.value)}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                required
               />
             )}
+            <p className="text-xs text-muted-foreground">
+              Astuce : ajoute « today » ou « demain » dans le titre pour fixer la deadline automatiquement.
+            </p>
           </div>
 
-          {/* Récurrent */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Tâche récurrente</Label>
               <Switch checked={recurring} onCheckedChange={setRecurring} />
             </div>
             <p className="text-xs text-gray-500">
-              La tâche réapparaîtra automatiquement chaque semaine
+              La tâche réapparaîtra automatiquement chaque semaine.
             </p>
           </div>
 

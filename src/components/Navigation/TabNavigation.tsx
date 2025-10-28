@@ -27,7 +27,7 @@ const menuItems: MenuItem[] = [
 
 export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
   return (
-    <nav className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <nav className="hidden md:block border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div className="container mx-auto">
         <div className="flex overflow-x-auto scrollbar-hide">
           {menuItems.map((item) => (

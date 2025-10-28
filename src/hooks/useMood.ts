@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { parseISO, isValid } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { MoodLog, DomainImpact } from '@/types';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,12 +11,39 @@ interface AddMoodParams {
   note?: string;
   weather?: any;
   domains?: DomainImpact[];
+  datetime?: string;
 }
 
 interface UpdateMoodParams {
   id: string;
   updates: Partial<AddMoodParams>;
 }
+
+const toIsoDateTime = (value?: string) => {
+  if (!value) {
+    return new Date().toISOString();
+  }
+
+  try {
+    const parsed = parseISO(value);
+    if (isValid(parsed)) {
+      if (value.length === 10) {
+        parsed.setHours(12, 0, 0, 0);
+      }
+      return parsed.toISOString();
+    }
+  } catch (error) {
+    // ignore
+  }
+
+  const fallback = new Date(value);
+  if (isValid(fallback)) {
+    fallback.setHours(12, 0, 0, 0);
+    return fallback.toISOString();
+  }
+
+  return new Date().toISOString();
+};
 
 export function useMood() {
   const { user } = useAuthStore();
@@ -44,7 +72,7 @@ export function useMood() {
         .insert([
           {
             user_id: user?.id,
-            datetime: new Date().toISOString(),
+            datetime: toIsoDateTime(moodData.datetime),
             score_global: moodData.score_global,
             emotions: moodData.emotions,
             note: moodData.note,
@@ -91,14 +119,27 @@ export function useMood() {
 
   const updateMoodMutation = useMutation({
     mutationFn: async ({ id, updates }: UpdateMoodParams) => {
+      const payload: Record<string, unknown> = {};
+
+      if (updates.score_global !== undefined) {
+        payload.score_global = updates.score_global;
+      }
+      if (updates.emotions !== undefined) {
+        payload.emotions = updates.emotions;
+      }
+      if (updates.note !== undefined) {
+        payload.note = updates.note;
+      }
+      if (updates.weather !== undefined) {
+        payload.weather = updates.weather;
+      }
+      if (updates.datetime !== undefined) {
+        payload.datetime = toIsoDateTime(updates.datetime);
+      }
+
       const { data, error } = await supabase
         .from('moods')
-        .update({
-          score_global: updates.score_global,
-          emotions: updates.emotions,
-          note: updates.note,
-          weather: updates.weather,
-        })
+        .update(payload)
         .eq('id', id)
         .select()
         .single();

@@ -9,7 +9,7 @@ export function useGoals() {
   const { user } = useAuthStore();
   const { checkAndUnlockBadges } = useGamificationTriggers();
 
-  // RÃ©cupÃ©rer tous les objectifs
+  // Recuperer tous les objectifs
   const { data: goals = [], isLoading } = useQuery({
     queryKey: ['goals', user?.id],
     queryFn: async () => {
@@ -25,7 +25,7 @@ export function useGoals() {
     enabled: !!user?.id,
   });
 
-  // RÃ©cupÃ©rer tous les milestones
+  // Recuperer tous les milestones
   const { data: milestones = [] } = useQuery({
     queryKey: ['goal_milestones', user?.id],
     queryFn: async () => {
@@ -87,7 +87,7 @@ export function useGoals() {
     },
   });
 
-  // Toggle complÃ©tÃ© d'un objectif
+  // Toggle completion d'un objectif
   const toggleGoalMutation = useMutation({
     mutationFn: async (id: string) => {
       const goal = goals.find((g) => g.id === id);
@@ -107,19 +107,29 @@ export function useGoals() {
       return data;
     },
     onSuccess: async (data) => {
-  queryClient.invalidateQueries({ queryKey: ['goals'] });
-  
-  if (data.completed) {
-    await supabase.rpc('add_xp', {
-      p_user_id: user?.id,
-      p_action_type: 'goal_completed',
-      p_xp_amount: 100,
-      p_description: 'Objectif atteint',
-    });
-    queryClient.invalidateQueries({ queryKey: ['gamification'] });
-	await checkAndUnlockBadges();
-  }
-},
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+
+      if (data?.completed) {
+        await supabase.rpc('add_xp', {
+          p_user_id: user?.id,
+          p_action_type: 'goal_completed',
+          p_xp_amount: 100,
+          p_description: 'Objectif atteint',
+        });
+        queryClient.invalidateQueries({ queryKey: ['gamification'] });
+        await checkAndUnlockBadges();
+        return;
+      }
+
+      await supabase.rpc('add_xp', {
+        p_user_id: user?.id,
+        p_action_type: 'goal_uncompleted',
+        p_xp_amount: -100,
+        p_description: 'Objectif annule',
+      });
+      queryClient.invalidateQueries({ queryKey: ['gamification'] });
+      await checkAndUnlockBadges();
+    },
   });
 
   // Ajouter un milestone
@@ -193,3 +203,5 @@ export function useGoals() {
     getMilestones,
   };
 }
+
+

@@ -32,14 +32,24 @@ export default function settings() {
       <Card className="p-6">
         <h2 className="text-xl font-bold mb-4">Thème actuel</h2>
         <div className="flex items-center gap-4">
-          <div 
-            className="w-20 h-20 rounded-lg border-2"
-            style={{ 
-              background: `linear-gradient(135deg, ${settings?.colors.primary}, ${settings?.colors.secondary})`
-            }}
-          />
+          <div className="relative">
+            <div
+              className="w-20 h-20 rounded-lg border-2 border-gray-300 dark:border-gray-700"
+              style={{
+                background: settings?.colors.backgroundGradient || settings?.colors.background
+              }}
+            />
+            <div
+              className="absolute bottom-1 left-1 right-1 h-3 rounded-sm opacity-90"
+              style={{
+                background: `linear-gradient(90deg, ${settings?.colors.primary}, ${settings?.colors.accent})`
+              }}
+            />
+          </div>
           <div>
-            <h3 className="text-lg font-semibold">{settings?.theme_name}</h3>
+            <h3 className="text-lg font-semibold" style={{ color: settings?.colors.primary }}>
+              {settings?.theme_name}
+            </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {settings?.is_custom ? 'Thème personnalisé' : 'Thème prédéfini'}
             </p>
@@ -54,7 +64,7 @@ export default function settings() {
           {presetThemes.map((theme) => (
             <button
               key={theme.id}
-              onClick={() => applyPresetTheme(theme.name)}
+              onClick={() => applyPresetTheme(theme.id)}
 
               className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
                 settings?.theme_name === theme.name
@@ -63,21 +73,31 @@ export default function settings() {
               }`}
             >
               <div className="relative">
-                <div 
-                  className="w-full h-24 rounded-lg mb-3"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`
+                {/* Preview avec le vrai gradient du background */}
+                <div
+                  className="w-full h-24 rounded-lg mb-3 border border-gray-200 dark:border-gray-700"
+                  style={{
+                    background: theme.colors.backgroundGradient || theme.colors.background
+                  }}
+                />
+                {/* Badge de couleur primaire en overlay */}
+                <div
+                  className="absolute bottom-4 left-2 right-2 h-6 rounded-md opacity-80"
+                  style={{
+                    background: `linear-gradient(90deg, ${theme.colors.primary}, ${theme.colors.secondary}, ${theme.colors.accent})`
                   }}
                 />
                 {settings?.theme_name === theme.name && (
-                  <div className="absolute top-2 right-2 w-6 h-6 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-md">
                     <Check className="w-4 h-4 text-blue-500" />
                   </div>
                 )}
               </div>
               <div className="text-center">
                 <p className="text-2xl mb-1">{theme.emoji}</p>
-                <p className="font-semibold">{theme.name}</p>
+                <p className="font-semibold" style={{ color: theme.colors.primary }}>
+                  {theme.name}
+                </p>
               </div>
             </button>
           ))}
