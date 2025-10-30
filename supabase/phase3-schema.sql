@@ -22,6 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id);
 
 -- ============================================
 -- TABLE: habit_logs
+-- Note: Permet plusieurs logs par jour pour la même habitude
 -- ============================================
 CREATE TABLE IF NOT EXISTS habit_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -29,8 +30,8 @@ CREATE TABLE IF NOT EXISTS habit_logs (
   date DATE NOT NULL,
   completed BOOLEAN DEFAULT false,
   quantity NUMERIC,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(habit_id, date)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  -- UNIQUE(habit_id, date) REMOVED: Multiple logs per day allowed
 );
 
 CREATE INDEX IF NOT EXISTS idx_habit_logs_habit_id ON habit_logs(habit_id);
