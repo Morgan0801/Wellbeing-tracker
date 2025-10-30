@@ -7,7 +7,14 @@
       "Bash(node:*)",
       "Bash(npm install:*)",
       "Bash(xxd:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(where:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase db push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git revert:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

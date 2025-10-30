@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './stores/authStore';
+import { NavigationProvider } from './contexts/NavigationContext';
 import { LoginPage } from './components/Auth/LoginPage';
 import { Header } from './components/Layout/Header';
 import { TabNavigation } from './components/Navigation/TabNavigation';
@@ -44,42 +45,44 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
-        <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <NavigationProvider activeTab={activeTab} setActiveTab={setActiveTab}>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <Header />
+          <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* Main content with padding bottom for mobile nav */}
-        <main className="pb-16 md:pb-0">
-          {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'mood' && <Dashboard />}
-          {activeTab === 'habits' && <HabitsPage />}
-          {activeTab === 'tasks' && <TasksPage />}
-          {activeTab === 'sleep' && <SleepPage />}
-          {activeTab === 'goals' && <GoalsPage />}
-          {activeTab === 'gratitude' && <GratitudePage />}
-          {activeTab === 'moodboard' && <MoodboardPage />}
-          {activeTab === 'gamification' && <GamificationPage />}
-          {activeTab === 'insights' && <InsightsPage />}
-          {activeTab === 'export' && <ExportPage />}
-          {activeTab === 'notifications' && <NotificationsSettings />}
-          {activeTab === 'theme' && <ThemeSettings />}
-        </main>
+          {/* Main content with padding bottom for mobile nav */}
+          <main className="pb-16 md:pb-0">
+            {activeTab === 'dashboard' && <Dashboard />}
+            {activeTab === 'mood' && <Dashboard />}
+            {activeTab === 'habits' && <HabitsPage />}
+            {activeTab === 'tasks' && <TasksPage />}
+            {activeTab === 'sleep' && <SleepPage />}
+            {activeTab === 'goals' && <GoalsPage />}
+            {activeTab === 'gratitude' && <GratitudePage />}
+            {activeTab === 'moodboard' && <MoodboardPage />}
+            {activeTab === 'gamification' && <GamificationPage />}
+            {activeTab === 'insights' && <InsightsPage />}
+            {activeTab === 'export' && <ExportPage />}
+            {activeTab === 'notifications' && <NotificationsSettings />}
+            {activeTab === 'theme' && <ThemeSettings />}
+          </main>
 
-        {/* Bottom Navigation (Mobile only) */}
-        <BottomNavigation
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onPlusClick={() => setIsPlusMenuOpen(true)}
-        />
+          {/* Bottom Navigation (Mobile only) */}
+          <BottomNavigation
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onPlusClick={() => setIsPlusMenuOpen(true)}
+          />
 
-        {/* Menu Plus (Drawer) */}
-        <MenuPlus
-          isOpen={isPlusMenuOpen}
-          onClose={() => setIsPlusMenuOpen(false)}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-      </div>
+          {/* Menu Plus (Drawer) */}
+          <MenuPlus
+            isOpen={isPlusMenuOpen}
+            onClose={() => setIsPlusMenuOpen(false)}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
+      </NavigationProvider>
     </QueryClientProvider>
   );
 }
