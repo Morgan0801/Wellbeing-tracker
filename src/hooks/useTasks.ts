@@ -140,6 +140,26 @@ export function useTasks() {
     return tasks.filter((task) => task.quadrant === quadrant && !task.completed);
   };
 
+  // Obtenir les taches par quadrant incluant celles complétées aujourd'hui
+  const getTasksByQuadrantWithToday = (quadrant: 1 | 2 | 3 | 4) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+
+    return tasks.filter((task) => {
+      if (task.quadrant !== quadrant) return false;
+      if (!task.completed) return true;
+
+      // Inclure les tâches complétées aujourd'hui
+      if (task.completed_at) {
+        const completedDate = new Date(task.completed_at);
+        completedDate.setHours(0, 0, 0, 0);
+        return completedDate.getTime() === todayTime;
+      }
+      return false;
+    });
+  };
+
   // Obtenir les taches complétees
   const getCompletedTasks = () => {
     return tasks.filter((task) => task.completed);
@@ -155,6 +175,7 @@ export function useTasks() {
     toggleTask: toggleTaskMutation.mutate,
     moveTask: moveTaskMutation.mutate,
     getTasksByQuadrant,
+    getTasksByQuadrantWithToday,
     getCompletedTasks,
   };
 }

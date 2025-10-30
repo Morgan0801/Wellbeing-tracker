@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, CheckCircle2, AlertCircle, LayoutGrid, CalendarDays } from 'lucide-react';
+import { Plus, CheckCircle2, AlertCircle, LayoutGrid, CalendarDays, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useTasks } from '@/hooks/useTasks';
@@ -10,7 +10,7 @@ import { startOfDay } from 'date-fns';
 import { TaskCalendarView } from './TaskCalendarView';
 
 export function TasksPage() {
-  const { tasks, getTasksByQuadrant, getCompletedTasks, isLoading } = useTasks();
+  const { tasks, getTasksByQuadrantWithToday, getCompletedTasks, toggleTask, isLoading } = useTasks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedQuadrant, setSelectedQuadrant] = useState<1 | 2 | 3 | 4>(1);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
@@ -43,13 +43,20 @@ export function TasksPage() {
   const completedTasks = getCompletedTasks();
 
   const today = startOfDay(new Date());
-  const todayTasks = activeTasks.filter((task) => {
+
+  // Toutes les tâches du jour (incluant celles complétées aujourd'hui)
+  const allTodayTasks = tasks.filter((task) => {
     const hasDeadlineToday =
       task.deadline && startOfDay(new Date(task.deadline)).getTime() === today.getTime();
     const isQuadrantOne = task.quadrant === 1;
     const isOverdue = task.deadline && new Date(task.deadline) < today;
-    return hasDeadlineToday || isQuadrantOne || isOverdue;
+    const completedToday = task.completed && task.completed_at &&
+      startOfDay(new Date(task.completed_at)).getTime() === today.getTime();
+    return hasDeadlineToday || isQuadrantOne || isOverdue || completedToday;
   });
+
+  // Pour le compteur, seulement les tâches non complétées
+  const todayTasks = allTodayTasks.filter((task) => !task.completed);
 
   return (
     <div className="container mx-auto p-4 pb-24 md:pb-4 space-y-6">
@@ -91,7 +98,7 @@ export function TasksPage() {
         </div>
       </div>
 
-      {todayTasks.length > 0 && (
+      {allTodayTasks.length > 0 && (
         <Card className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -101,19 +108,29 @@ export function TasksPage() {
                   ⚡ Tâches à faire aujourd&apos;hui ({todayTasks.length})
                 </h3>
                 <div className="space-y-1.5">
-                  {todayTasks.map((task) => {
+                  {allTodayTasks.map((task) => {
                     const isOverdue = task.deadline && new Date(task.deadline) < today;
                     const quadrant = TASK_QUADRANTS.find((q) => q.id === task.quadrant);
 
                     return (
                       <div
                         key={task.id}
-                        className="flex items-center gap-2 text-xs text-orange-800 dark:text-orange-200"
+                        className={`flex items-center gap-2 text-xs text-orange-800 dark:text-orange-200 ${
+                          task.completed ? 'opacity-60' : ''
+                        }`}
                       >
+                        <button
+                          onClick={() => toggleTask(task.id)}
+                          className={`flex-shrink-0 w-4 h-4 border-2 border-orange-600 dark:border-orange-400 rounded flex items-center justify-center transition-colors ${
+                            task.completed ? 'bg-orange-600 dark:bg-orange-400' : 'bg-transparent hover:bg-orange-100 dark:hover:bg-orange-900'
+                          }`}
+                        >
+                          {task.completed && <Check className="w-3 h-3 text-white" />}
+                        </button>
                         <span>{quadrant?.emoji}</span>
-                        <span className="font-medium">{task.title}</span>
-                        {isOverdue && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-600 text-white font-medium">
+                        <span className={`font-medium ${task.completed ? 'line-through' : ''}`}>{task.title}</span>
+                        {isOverdue && !task.completed && (
+                          <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-red-600 text-white font-medium">
                             EN RETARD
                           </span>
                         )}
@@ -137,7 +154,7 @@ export function TasksPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {TASK_QUADRANTS.map((quadrant) => {
-              const quadrantTasks = getTasksByQuadrant(quadrant.id as 1 | 2 | 3 | 4);
+              const quadrantTasks = getTasksByQuadrantWithToday(quadrant.id as 1 | 2 | 3 | 4);
 
               return (
                 <Card

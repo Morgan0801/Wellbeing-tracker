@@ -147,18 +147,18 @@ export function HabitStatsCalendar() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-2 gap-3 md:gap-4 p-3 md:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg"
+            className="grid grid-cols-2 gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg"
           >
             <div className="text-center">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                className="text-2xl md:text-3xl font-bold text-purple-600"
+                className="text-lg md:text-xl font-bold text-purple-600"
               >
                 {periodStats.totalCount}
               </motion.div>
-              <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">
                 fois réalisé
               </div>
             </div>
@@ -169,11 +169,11 @@ export function HabitStatsCalendar() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
-                  className="text-2xl md:text-3xl font-bold text-green-600"
+                  className="text-lg md:text-xl font-bold text-green-600"
                 >
                   {periodStats.totalQuantity}
                 </motion.div>
-                <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">
                   {selectedHabit.unit || 'unités'}
                 </div>
               </div>

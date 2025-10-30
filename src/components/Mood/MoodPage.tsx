@@ -7,6 +7,7 @@ import { MoodModal } from './MoodModal';
 import { MoodHistory } from './MoodHistory';
 import { MoodChart } from './MoodChart';
 import { MoodInsights } from './MoodInsights';
+import { MoodHeatmap } from './MoodHeatmap';
 import { useMood } from '@/hooks/useMood';
 import { getMoodEmoji } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -98,8 +99,11 @@ export function MoodPage() {
         </div>
       </motion.div>
 
-      {/* Graphique évolution */}
-      <MoodChart />
+      {/* Graphique évolution et Heatmap côte à côte sur desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4">
+        <MoodHeatmap />
+        <MoodChart />
+      </div>
 
       {/* Insights émotionnels */}
       <MoodInsights />

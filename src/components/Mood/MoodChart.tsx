@@ -8,6 +8,27 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { getMoodEmoji } from '@/lib/utils';
 
+// Composant personnalisé pour afficher un emoji au lieu d'un point
+const EmojiDot = (props: any) => {
+  const { cx, cy, payload } = props;
+  if (!payload.score) return null;
+
+  const emoji = getMoodEmoji(payload.score);
+
+  return (
+    <text
+      x={cx}
+      y={cy}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontSize="16"
+      style={{ userSelect: 'none' }}
+    >
+      {emoji}
+    </text>
+  );
+};
+
 export function MoodChart() {
   const { moods } = useMood();
   const [period, setPeriod] = useState<7 | 30>(7);
@@ -138,8 +159,8 @@ export function MoodChart() {
                   strokeWidth={3}
                   fill="url(#colorScore)"
                   connectNulls={false}
-                  dot={{ fill: '#ec4899', r: 4 }}
-                  activeDot={{ r: 6 }}
+                  dot={<EmojiDot />}
+                  activeDot={<EmojiDot />}
                 />
               </AreaChart>
             </ResponsiveContainer>

@@ -6,7 +6,7 @@ import { useHabits } from '@/hooks/useHabits';
 import { HabitCard } from './HabitCard';
 import { HabitModal } from './HabitModal';
 import { HabitStats } from './HabitStats';
-import { HabitStatsCalendar } from './HabitStatsCalendar';
+import { HabitStatsCalendarCompact } from './HabitStatsCalendarCompact';
 import { Habit, HabitCategory } from '@/types';
 import { format, addDays, subDays, startOfDay, isToday as isTodayFn } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -277,8 +277,14 @@ export function HabitsPage() {
         habit={statsHabit}
       />
 
-      {/* Calendrier de stats habitudes */}
-      {!noHabits && <HabitStatsCalendar />}
+      {/* Calendriers de stats habitudes - Comparaison côte à côte */}
+      {!noHabits && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <HabitStatsCalendarCompact />
+          <HabitStatsCalendarCompact />
+          <HabitStatsCalendarCompact />
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { PerformanceHeader } from '@/components/Dashboard/PerformanceHeader';
 import { DashboardSummaryCards } from '@/components/Dashboard/DashboardSummaryCards';
 import { TodayHabits } from '@/components/Dashboard/TodayHabits';
 import { XPChart } from '@/components/Dashboard/XPChart';
+import { SleepChart } from '@/components/Dashboard/SleepChart';
 import { ActiveGoals } from '@/components/Dashboard/ActiveGoals';
 import { HabitStatsCalendar } from '@/components/Habits/HabitStatsCalendar';
 
@@ -20,11 +21,14 @@ export function Dashboard() {
         <TodayHabits />
       </div>
 
-      {/* XP Chart - Progression sur 30 jours */}
-      <XPChart />
-
-      {/* Calendrier des statistiques d'habitudes */}
-      <HabitStatsCalendar />
+      {/* Statistiques Habitudes et Charts côte à côte */}
+      <div className="grid grid-cols-1 lg:grid-cols-[30%_1fr] gap-4">
+        <HabitStatsCalendar />
+        <div className="space-y-4">
+          <SleepChart />
+          <XPChart />
+        </div>
+      </div>
     </div>
   );
 }
