@@ -54,11 +54,16 @@ export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const getDayStatus = (day: Date) => {
-    const log = monthLogs.find((l) => isSameDay(new Date(l.date), day));
-    if (log?.completed) {
+    // Récupère TOUS les logs du jour (support multi-logs par jour)
+    const dayLogs = monthLogs.filter((l) => isSameDay(new Date(l.date), day));
+
+    if (dayLogs.length > 0 && dayLogs.some((l) => l.completed)) {
+      // Somme toutes les quantités du jour
+      const totalQuantity = dayLogs.reduce((sum, log) => sum + (log.quantity || 0), 0);
+
       return {
         completed: true,
-        quantity: log.quantity,
+        quantity: totalQuantity > 0 ? totalQuantity : null,
         className: 'bg-green-600 text-white',
       };
     }
