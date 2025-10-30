@@ -7,12 +7,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, endOfWeek, subMonths, addMonths } from 'date-fns';
+import { Calendar, TrendingUp } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useMemo, useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 
 interface HabitStatsProps {
   open: boolean;
@@ -22,40 +20,27 @@ interface HabitStatsProps {
 
 export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
   const { getHabitLogs } = useHabits();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-
-  // Réinitialiser au mois actuel quand le modal s'ouvre
-  useEffect(() => {
-    if (open) {
-      setCurrentMonth(new Date());
-    }
-  }, [open]);
 
   if (!habit) return null;
 
   const logs = getHabitLogs(habit.id);
   const now = new Date();
 
-  // Calculs pour la semaine en cours (toujours la semaine actuelle)
+  // Calculs pour la semaine en cours
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const weekLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const logDate = new Date(log.date);
-      return logDate >= weekStart && logDate <= weekEnd;
-    });
-  }, [logs, weekStart, weekEnd]);
+  const weekLogs = logs.filter((log) => {
+    const logDate = new Date(log.date);
+    return logDate >= weekStart && logDate <= weekEnd;
+  });
 
-  // Calculs pour le mois sélectionné dans le calendrier
-  const monthStart = useMemo(() => startOfMonth(currentMonth), [currentMonth]);
-  const monthEnd = useMemo(() => endOfMonth(currentMonth), [currentMonth]);
-
-  const monthLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const logDate = new Date(log.date);
-      return logDate >= monthStart && logDate <= monthEnd;
-    });
-  }, [logs, monthStart, monthEnd]);
+  // Calculs pour le mois en cours
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+  const monthLogs = logs.filter((log) => {
+    const logDate = new Date(log.date);
+    return logDate >= monthStart && logDate <= monthEnd;
+  });
 
   // Statistiques hebdomadaires
   const weekCompletedCount = weekLogs.filter((l) => l.completed).length;
@@ -66,9 +51,7 @@ export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
   const monthTotalQuantity = monthLogs.reduce((sum, log) => sum + (log.quantity || 0), 0);
 
   // Calendrier du mois
-  const daysInMonth = useMemo(() => {
-    return eachDayOfInterval({ start: monthStart, end: monthEnd });
-  }, [monthStart, monthEnd]);
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const getDayStatus = (day: Date) => {
     // Récupère TOUS les logs du jour (support multi-logs par jour)
@@ -154,34 +137,10 @@ export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
           {/* Calendrier mensuel */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Calendrier
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <div className="text-sm font-medium min-w-[140px] text-center">
-                    {format(currentMonth, 'MMMM yyyy', { locale: fr })}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                    disabled={currentMonth >= now}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Calendrier - {format(now, 'MMMM yyyy', { locale: fr })}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {/* Jours de la semaine */}
