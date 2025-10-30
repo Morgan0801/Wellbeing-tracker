@@ -8,6 +8,7 @@ import { TabNavigation } from './components/Navigation/TabNavigation';
 import { BottomNavigation } from './components/Navigation/BottomNavigation';
 import { MenuPlus } from './components/Navigation/MenuPlus';
 import { Dashboard } from './components/Dashboard/Dashboard';
+import { MoodPage } from './components/Mood/MoodPage';
 import { HabitsPage } from './components/Habits/HabitsPage';
 import { TasksPage } from './components/Tasks/TasksPage';
 import { SleepPage } from './components/Sleep/SleepPage';
@@ -53,7 +54,7 @@ function App() {
           {/* Main content with padding bottom for mobile nav */}
           <main className="pb-16 md:pb-0">
             {activeTab === 'dashboard' && <Dashboard />}
-            {activeTab === 'mood' && <Dashboard />}
+            {activeTab === 'mood' && <MoodPage />}
             {activeTab === 'habits' && <HabitsPage />}
             {activeTab === 'tasks' && <TasksPage />}
             {activeTab === 'sleep' && <SleepPage />}
