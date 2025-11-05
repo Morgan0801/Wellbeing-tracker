@@ -83,6 +83,12 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
       .filter(([, impact]) => impact !== 0)
       .map(([domain, impact]) => ({ domain, impact }));
 
+    // Créer un datetime complet avec la date choisie et l'heure actuelle
+    const now = new Date();
+    const [year, month, day] = moodDate.split('-').map(Number);
+    const datetimeWithTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes());
+    const datetimeISO = datetimeWithTime.toISOString();
+
     if (editingMood) {
       updateMood({
         id: editingMood.id,
@@ -92,7 +98,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
           note: note || undefined,
           weather: weather || undefined,
           domains: domainsToSave,
-          datetime: moodDate,
+          datetime: datetimeISO,
         },
       });
     } else {
@@ -102,7 +108,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
         note: note || undefined,
         weather: weather || undefined,
         domains: domainsToSave,
-        datetime: moodDate,
+        datetime: datetimeISO,
       });
     }
 
