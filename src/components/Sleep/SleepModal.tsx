@@ -17,13 +17,37 @@ interface SleepModalProps {
   editSleep?: SleepLog;
 }
 
+// Helper functions for time format conversion
+const hoursToTimeFormat = (hours: number): string => {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h${m.toString().padStart(2, '0')}`;
+};
+
+const timeFormatToHours = (timeStr: string): number => {
+  // Accepte: "2h30", "2h", "2.5", "2,5"
+  timeStr = timeStr.toLowerCase().trim();
+
+  // Si c'est juste un nombre (2.5 ou 2,5)
+  if (!timeStr.includes('h')) {
+    return parseFloat(timeStr.replace(',', '.'));
+  }
+
+  // Sinon format "2h30"
+  const parts = timeStr.split('h');
+  const hours = parseInt(parts[0]) || 0;
+  const minutes = parts[1] ? parseInt(parts[1]) || 0 : 0;
+  return hours + minutes / 60;
+};
+
 export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
   const { addSleepLog, updateSleepLog, isAddingSleepLog } = useSleep();
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [totalHours, setTotalHours] = useState('7.5');
-  const [remHours, setRemHours] = useState('1.5');
-  const [deepHours, setDeepHours] = useState('2');
+  const [totalHours, setTotalHours] = useState('7h30');
+  const [remHours, setRemHours] = useState('1h30');
+  const [deepHours, setDeepHours] = useState('2h');
   const [avgHeartRate, setAvgHeartRate] = useState('60');
   const [bedtime, setBedtime] = useState('23:00');
   const [wakeupTime, setWakeupTime] = useState('07:00');
@@ -32,9 +56,9 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
   useEffect(() => {
     if (editSleep) {
       setDate(editSleep.date);
-      setTotalHours(editSleep.total_hours.toString());
-      setRemHours(editSleep.rem_hours.toString());
-      setDeepHours(editSleep.deep_hours.toString());
+      setTotalHours(hoursToTimeFormat(editSleep.total_hours));
+      setRemHours(hoursToTimeFormat(editSleep.rem_hours));
+      setDeepHours(hoursToTimeFormat(editSleep.deep_hours));
       setAvgHeartRate(editSleep.avg_heart_rate.toString());
       setBedtime(editSleep.bedtime);
       setWakeupTime(editSleep.wakeup_time);
@@ -42,9 +66,9 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
     } else {
       // Reset values
       setDate(new Date().toISOString().split('T')[0]);
-      setTotalHours('7.5');
-      setRemHours('1.5');
-      setDeepHours('2');
+      setTotalHours('7h30');
+      setRemHours('1h30');
+      setDeepHours('2h');
       setAvgHeartRate('60');
       setBedtime('23:00');
       setWakeupTime('07:00');
@@ -57,9 +81,9 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
 
     const sleepData = {
       date,
-      total_hours: parseFloat(totalHours),
-      rem_hours: parseFloat(remHours),
-      deep_hours: parseFloat(deepHours),
+      total_hours: timeFormatToHours(totalHours),
+      rem_hours: timeFormatToHours(remHours),
+      deep_hours: timeFormatToHours(deepHours),
       avg_heart_rate: parseInt(avgHeartRate),
       bedtime,
       wakeup_time: wakeupTime,
@@ -126,44 +150,41 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
             <Label htmlFor="totalHours">Heures totales de sommeil</Label>
             <Input
               id="totalHours"
-              type="number"
-              step="0.1"
-              min="0"
-              max="24"
+              type="text"
               value={totalHours}
               onChange={(e) => setTotalHours(e.target.value)}
+              placeholder="Ex: 7h30 ou 7.5"
               required
             />
+            <p className="text-xs text-gray-500">Format: 7h30 ou 7.5</p>
           </div>
 
           {/* Sommeil paradoxal (REM) */}
           <div className="space-y-2">
-            <Label htmlFor="remHours">Sommeil paradoxal (REM) - heures</Label>
+            <Label htmlFor="remHours">Sommeil paradoxal (REM)</Label>
             <Input
               id="remHours"
-              type="number"
-              step="0.1"
-              min="0"
-              max="24"
+              type="text"
               value={remHours}
               onChange={(e) => setRemHours(e.target.value)}
+              placeholder="Ex: 1h30 ou 1.5"
               required
             />
+            <p className="text-xs text-gray-500">Format: 1h30 ou 1.5</p>
           </div>
 
           {/* Sommeil profond */}
           <div className="space-y-2">
-            <Label htmlFor="deepHours">Sommeil profond - heures</Label>
+            <Label htmlFor="deepHours">Sommeil profond</Label>
             <Input
               id="deepHours"
-              type="number"
-              step="0.1"
-              min="0"
-              max="24"
+              type="text"
               value={deepHours}
               onChange={(e) => setDeepHours(e.target.value)}
+              placeholder="Ex: 2h ou 2.0"
               required
             />
+            <p className="text-xs text-gray-500">Format: 2h ou 2.0</p>
           </div>
 
           {/* Fréquence cardiaque */}
