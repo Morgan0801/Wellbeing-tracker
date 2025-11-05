@@ -38,3 +38,10 @@ export function getMoodLabel(score: number): string {
   if (score <= 8) return 'Bien';
   return 'Très bien';
 }
+
+export function formatHoursToTime(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  return `${h}h${m.toString().padStart(2, '0')}`;
+}

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Heart, Clock, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { getMoodEmoji, getMoodColor } from '@/lib/utils';
+import { getMoodEmoji, getMoodColor, formatHoursToTime } from '@/lib/utils';
 
 interface SleepCardProps {
   sleep: SleepLog;
@@ -43,15 +43,15 @@ export function SleepCard({ sleep, onEdit }: SleepCardProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <div>
               <div className="text-gray-500 text-xs">Total</div>
-              <div className="font-semibold">{sleep.total_hours}h</div>
+              <div className="font-semibold">{formatHoursToTime(sleep.total_hours)}</div>
             </div>
             <div>
               <div className="text-gray-500 text-xs">REM</div>
-              <div className="font-semibold text-purple-600">{sleep.rem_hours}h</div>
+              <div className="font-semibold text-purple-600">{formatHoursToTime(sleep.rem_hours)}</div>
             </div>
             <div>
               <div className="text-gray-500 text-xs">Profond</div>
-              <div className="font-semibold text-blue-600">{sleep.deep_hours}h</div>
+              <div className="font-semibold text-blue-600">{formatHoursToTime(sleep.deep_hours)}</div>
             </div>
             <div>
               <div className="text-gray-500 text-xs flex items-center gap-1">
