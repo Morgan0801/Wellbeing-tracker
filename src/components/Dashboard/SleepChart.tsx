@@ -5,6 +5,7 @@ import { useSleep } from '@/hooks/useSleep';
 import { format, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useMemo } from 'react';
+import { formatHoursToTime } from '@/lib/utils';
 
 export function SleepChart() {
   const { sleepLogs } = useSleep();
@@ -67,7 +68,7 @@ export function SleepChart() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-xs md:text-sm text-gray-500">Durée moyenne</p>
-                <p className="text-xl md:text-2xl font-bold text-indigo-600">{avgSleep30d}h</p>
+                <p className="text-xl md:text-2xl font-bold text-indigo-600">{formatHoursToTime(avgSleep30d)}</p>
               </div>
               <div>
                 <p className="text-xs md:text-sm text-gray-500">Qualité moyenne</p>
@@ -103,7 +104,7 @@ export function SleepChart() {
                   }}
                   labelStyle={{ fontWeight: 'bold' }}
                   formatter={(value: number, name: string) => {
-                    if (name === 'hours') return [`${value}h`, 'Durée'];
+                    if (name === 'hours') return [formatHoursToTime(value), 'Durée'];
                     if (name === 'quality') return [`${value}/10`, 'Qualité'];
                     return [value, name];
                   }}

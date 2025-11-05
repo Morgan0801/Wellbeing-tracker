@@ -5,6 +5,7 @@ import { useSleep } from '@/hooks/useSleep';
 import { useMood } from '@/hooks/useMood';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis } from 'recharts';
 import { format } from 'date-fns';
+import { formatHoursToTime } from '@/lib/utils';
 
 interface CorrelationPoint {
   sleepHours: number;
@@ -95,7 +96,7 @@ export function SleepMoodCorrelation() {
             {data.date}
           </p>
           <p className="text-xs md:text-sm text-indigo-600 dark:text-indigo-400">
-            Sommeil: {data.sleepHours.toFixed(1)}h
+            Sommeil: {formatHoursToTime(data.sleepHours)}
           </p>
           <p className="text-xs md:text-sm text-pink-600 dark:text-pink-400">
             Humeur: {data.moodScore}/10

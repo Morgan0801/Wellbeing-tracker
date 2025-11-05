@@ -3,6 +3,7 @@ import { SleepLog } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { format, subDays, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatHoursToTime } from '@/lib/utils';
 
 interface SleepStatsChartProps {
   sleepLogs: SleepLog[];
@@ -86,7 +87,7 @@ export function SleepStatsChart({ sleepLogs, periodDays }: SleepStatsChartProps)
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-purple-600">
-              {stats.avgDuration.toFixed(1)}h
+              {formatHoursToTime(stats.avgDuration)}
             </div>
           </CardContent>
         </Card>
@@ -99,7 +100,7 @@ export function SleepStatsChart({ sleepLogs, periodDays }: SleepStatsChartProps)
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-indigo-600">
-              {stats.avgRem.toFixed(1)}h
+              {formatHoursToTime(stats.avgRem)}
             </div>
           </CardContent>
         </Card>
@@ -112,7 +113,7 @@ export function SleepStatsChart({ sleepLogs, periodDays }: SleepStatsChartProps)
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-700">
-              {stats.avgDeep.toFixed(1)}h
+              {formatHoursToTime(stats.avgDeep)}
             </div>
           </CardContent>
         </Card>
