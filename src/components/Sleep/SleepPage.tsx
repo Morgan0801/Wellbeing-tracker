@@ -5,6 +5,7 @@ import { SleepModal } from './SleepModal';
 import { SleepCard } from './SleepCard';
 import { SleepCalendar } from './SleepCalendar';
 import { SleepStatsChart } from './SleepStatsChart';
+import { SleepScheduleChart } from './SleepScheduleChart';
 import { useSleep } from '@/hooks/useSleep';
 import { SleepLog } from '@/types';
 
@@ -77,6 +78,7 @@ export function SleepPage() {
         {/* Colonne gauche : Statistiques et graphiques (2/3 de la largeur) */}
         <div className="lg:col-span-2 space-y-6">
           <SleepStatsChart sleepLogs={sleepLogs} periodDays={selectedPeriod} />
+          <SleepScheduleChart sleepLogs={sleepLogs} periodDays={selectedPeriod} />
         </div>
 
         {/* Colonne droite : Calendrier (1/3 de la largeur) */}
