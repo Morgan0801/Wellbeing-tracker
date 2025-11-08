@@ -14,7 +14,11 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git revert:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git push)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

@@ -78,7 +78,7 @@ export function SleepPage() {
         {/* Colonne gauche : Statistiques et graphiques (2/3 de la largeur) */}
         <div className="lg:col-span-2 space-y-6">
           <SleepStatsChart sleepLogs={sleepLogs} periodDays={selectedPeriod} />
-          <SleepScheduleChart sleepLogs={sleepLogs} periodDays={selectedPeriod} />
+          <SleepScheduleChart sleepLogs={sleepLogs} />
         </div>
 
         {/* Colonne droite : Calendrier (1/3 de la largeur) */}

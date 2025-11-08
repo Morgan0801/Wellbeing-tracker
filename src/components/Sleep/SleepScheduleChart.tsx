@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Moon, Sun } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { SleepLog } from '@/types';
@@ -8,7 +9,6 @@ import { fr } from 'date-fns/locale';
 
 interface SleepScheduleChartProps {
   sleepLogs: SleepLog[];
-  periodDays?: number;
 }
 
 // Convertir une heure "HH:MM" en nombre de minutes depuis minuit
@@ -24,13 +24,16 @@ const minutesToTime = (minutes: number): string => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
-// Formatter pour l'axe Y (heures)
+// Formatter pour l'axe Y (heures) - Affiche 1h, 2h au lieu de 25h, 26h
 const formatYAxis = (minutes: number): string => {
-  const h = Math.floor(minutes / 60);
+  let h = Math.floor(minutes / 60);
+  // Si >= 24h, ramener à l'équivalent (ex: 25h -> 1h)
+  if (h >= 24) h = h - 24;
   return `${h}h`;
 };
 
-export function SleepScheduleChart({ sleepLogs, periodDays = 30 }: SleepScheduleChartProps) {
+export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
+  const [periodDays, setPeriodDays] = useState(30);
   const chartData = useMemo(() => {
     const cutoffDate = subDays(new Date(), periodDays);
 
@@ -100,34 +103,51 @@ export function SleepScheduleChart({ sleepLogs, periodDays = 30 }: SleepSchedule
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base md:text-lg flex items-center gap-2">
-          <Moon className="w-4 h-4 md:w-5 md:h-5 text-indigo-500" />
-          Horaires de sommeil ({periodDays} jours)
-        </CardTitle>
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <CardTitle className="text-sm md:text-base flex items-center gap-2">
+            <Moon className="w-4 h-4 text-indigo-500" />
+            Horaires de sommeil
+          </CardTitle>
+
+          {/* Filtres de période */}
+          <div className="flex gap-1">
+            {[7, 30, 90].map((days) => (
+              <Button
+                key={days}
+                variant={periodDays === days ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPeriodDays(days)}
+                className="text-xs px-2 py-1 h-7"
+              >
+                {days}j
+              </Button>
+            ))}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
-        {/* Stats moyennes */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="flex items-center gap-2">
-            <Moon className="w-4 h-4 text-indigo-600" />
+      <CardContent className="pt-2">
+        {/* Stats moyennes - Plus compactes */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="flex items-center gap-1.5">
+            <Moon className="w-3 h-3 text-indigo-600" />
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Coucher moyen</p>
-              <p className="text-lg md:text-xl font-bold text-indigo-600">{avgStats.avgBedtime}</p>
+              <p className="text-[10px] text-gray-500">Coucher moy.</p>
+              <p className="text-sm md:text-base font-bold text-indigo-600">{avgStats.avgBedtime}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Sun className="w-4 h-4 text-orange-500" />
+          <div className="flex items-center gap-1.5">
+            <Sun className="w-3 h-3 text-orange-500" />
             <div>
-              <p className="text-xs md:text-sm text-gray-500">Lever moyen</p>
-              <p className="text-lg md:text-xl font-bold text-orange-600">{avgStats.avgWakeup}</p>
+              <p className="text-[10px] text-gray-500">Lever moy.</p>
+              <p className="text-sm md:text-base font-bold text-orange-600">{avgStats.avgWakeup}</p>
             </div>
           </div>
         </div>
 
-        {/* Graphique */}
-        <ResponsiveContainer width="100%" height={250}>
+        {/* Graphique - Plus grand */}
+        <ResponsiveContainer width="100%" height={350}>
           <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
@@ -162,11 +182,12 @@ export function SleepScheduleChart({ sleepLogs, periodDays = 30 }: SleepSchedule
             />
             <Legend
               verticalAlign="top"
-              height={36}
+              height={28}
               iconType="line"
+              wrapperStyle={{ fontSize: '11px' }}
               formatter={(value) => {
-                if (value === 'bedtime') return 'Heure de coucher';
-                if (value === 'wakeup') return 'Heure de lever';
+                if (value === 'bedtime') return 'Coucher';
+                if (value === 'wakeup') return 'Lever';
                 return value;
               }}
             />
