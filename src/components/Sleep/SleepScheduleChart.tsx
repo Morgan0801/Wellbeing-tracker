@@ -29,23 +29,19 @@ const SCALE_MAP = [
   { position: 0, hour: 22, minute: 0 },
   { position: 50, hour: 22, minute: 30 },
   { position: 100, hour: 23, minute: 0 },
-  { position: 150, hour: 23, minute: 20 },
-  { position: 200, hour: 23, minute: 40 },
-  { position: 225, hour: 23, minute: 50 },
-  { position: 250, hour: 0, minute: 0 },
-  { position: 275, hour: 0, minute: 10 },
-  { position: 300, hour: 0, minute: 20 },
-  { position: 325, hour: 0, minute: 40 },
-  { position: 350, hour: 1, minute: 0 },
-  { position: 400, hour: 3, minute: 0 },
-  { position: 450, hour: 5, minute: 0 },
-  { position: 500, hour: 7, minute: 0 },
-  { position: 550, hour: 8, minute: 0 },
-  { position: 600, hour: 8, minute: 30 },
-  { position: 650, hour: 9, minute: 0 },
-  { position: 700, hour: 9, minute: 30 },
-  { position: 750, hour: 10, minute: 0 },
-  { position: 800, hour: 10, minute: 30 },
+  { position: 175, hour: 23, minute: 30 },
+  { position: 250, hour: 0, minute: 0 },  // Minuit
+  { position: 325, hour: 0, minute: 30 },
+  { position: 400, hour: 1, minute: 0 },
+  { position: 450, hour: 3, minute: 0 },
+  { position: 500, hour: 5, minute: 0 },
+  { position: 550, hour: 7, minute: 0 },
+  { position: 600, hour: 8, minute: 0 },
+  { position: 650, hour: 8, minute: 30 },
+  { position: 700, hour: 9, minute: 0 },
+  { position: 750, hour: 9, minute: 30 },
+  { position: 800, hour: 10, minute: 0 },
+  { position: 825, hour: 10, minute: 30 },
   { position: 850, hour: 11, minute: 0 },
 ];
 
@@ -96,6 +92,9 @@ const formatYAxis = (position: number): string => {
   const closest = SCALE_MAP.reduce((prev, curr) =>
     Math.abs(curr.position - position) < Math.abs(prev.position - position) ? curr : prev
   );
+
+  // Afficher "Minuit" au lieu de "0h"
+  if (closest.hour === 0 && closest.minute === 0) return 'Minuit';
 
   if (closest.minute === 0) return `${closest.hour}h`;
   return `${closest.hour}h${closest.minute.toString().padStart(2, '0')}`;
@@ -230,28 +229,24 @@ export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
                 0,    // 22h
                 50,   // 22h30
                 100,  // 23h
-                150,  // 23h20
-                200,  // 23h40
-                225,  // 23h50
-                250,  // 0h (minuit)
-                275,  // 0h10
-                300,  // 0h20
-                325,  // 0h40
-                350,  // 1h
-                400,  // ~3h
-                450,  // ~5h
-                500,  // ~7h
-                550,  // 8h
-                600,  // 8h30
-                650,  // 9h
-                700,  // 9h30
-                750,  // 10h
-                800,  // 10h30
+                175,  // 23h30
+                250,  // Minuit
+                325,  // 0h30
+                400,  // 1h
+                450,  // 3h
+                500,  // 5h
+                550,  // 7h
+                600,  // 8h
+                650,  // 8h30
+                700,  // 9h
+                750,  // 9h30
+                800,  // 10h
+                825,  // 10h30
                 850   // 11h
               ]}
               tickFormatter={formatYAxis}
               tick={{ fontSize: 9 }}
-              width={50}
+              width={55}
             />
             <Tooltip
               contentStyle={{
