@@ -10,10 +10,16 @@ import {
   subMonths,
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { getMoodEmoji, getMoodColor } from '@/lib/utils';
+import { getMoodEmoji, getMoodColor, formatHoursToTime } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Moon, Sun, Clock } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface SleepCalendarProps {
   sleepLogs: SleepLog[];
@@ -21,6 +27,7 @@ interface SleepCalendarProps {
 
 export function SleepCalendar({ sleepLogs }: SleepCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedSleep, setSelectedSleep] = useState<SleepLog | null>(null);
 
   const calendarDays = useMemo(() => {
     const start = startOfMonth(currentDate);
@@ -118,6 +125,7 @@ export function SleepCalendar({ sleepLogs }: SleepCalendarProps) {
                     ? `${getMoodColor(sleep.quality_score)}15`
                     : undefined,
                 }}
+                onClick={() => sleep && setSelectedSleep(sleep)}
               >
                 <div className="text-xs font-medium text-gray-900 dark:text-white">
                   {format(day, 'd')}
@@ -165,6 +173,85 @@ export function SleepCalendar({ sleepLogs }: SleepCalendarProps) {
           </div>
         </div>
       </CardContent>
+
+      {/* Dialog avec détails du sommeil */}
+      <Dialog open={!!selectedSleep} onOpenChange={(open) => !open && setSelectedSleep(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Moon className="w-5 h-5 text-indigo-500" />
+              Détails du sommeil - {selectedSleep && format(new Date(selectedSleep.date), 'PPP', { locale: fr })}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedSleep && (
+            <div className="space-y-4">
+              {/* Horaires */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-start gap-3 p-3 bg-indigo-50 dark:bg-indigo-950 rounded-lg">
+                  <Moon className="w-5 h-5 text-indigo-600 mt-1" />
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Heure de coucher</p>
+                    <p className="text-lg font-bold text-indigo-600">{selectedSleep.bedtime}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                  <Sun className="w-5 h-5 text-orange-600 mt-1" />
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Heure de lever</p>
+                    <p className="text-lg font-bold text-orange-600">{selectedSleep.wakeup_time}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Durée totale */}
+              <div className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                <Clock className="w-5 h-5 text-purple-600 mt-1" />
+                <div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Durée totale de sommeil</p>
+                  <p className="text-lg font-bold text-purple-600">{formatHoursToTime(selectedSleep.total_hours)}</p>
+                </div>
+              </div>
+
+              {/* Qualité du sommeil */}
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Qualité du sommeil</p>
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">{getMoodEmoji(selectedSleep.quality_score)}</span>
+                  <span
+                    className="text-3xl font-bold"
+                    style={{ color: getMoodColor(selectedSleep.quality_score) }}
+                  >
+                    {selectedSleep.quality_score}/10
+                  </span>
+                </div>
+              </div>
+
+              {/* Détails sommeil profond/REM */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Sommeil profond</p>
+                  <p className="text-lg font-bold text-blue-700">{formatHoursToTime(selectedSleep.deep_hours)}</p>
+                </div>
+
+                <div className="p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Sommeil REM</p>
+                  <p className="text-lg font-bold text-purple-600">{formatHoursToTime(selectedSleep.rem_hours)}</p>
+                </div>
+              </div>
+
+              {/* Note si présente */}
+              {selectedSleep.notes && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Note</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{selectedSleep.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

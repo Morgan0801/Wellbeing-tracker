@@ -24,12 +24,14 @@ const minutesToTime = (minutes: number): string => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
-// Formatter pour l'axe Y (heures) - Affiche 1h, 2h au lieu de 25h, 26h
+// Formatter pour l'axe Y (heures) - Affiche 1h, 2h, 8h30 au lieu de 25h, 26h
 const formatYAxis = (minutes: number): string => {
   let h = Math.floor(minutes / 60);
+  const m = minutes % 60;
   // Si >= 24h, ramener à l'équivalent (ex: 25h -> 1h)
   if (h >= 24) h = h - 24;
-  return `${h}h`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${m.toString().padStart(2, '0')}`;
 };
 
 export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
@@ -148,7 +150,7 @@ export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
 
         {/* Graphique - Plus grand */}
         <ResponsiveContainer width="100%" height={350}>
-          <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="date"
@@ -156,8 +158,16 @@ export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
               interval="preserveStartEnd"
             />
             <YAxis
-              domain={[20 * 60, 32 * 60]} // De 20h à 8h (32h = 8h du lendemain)
-              ticks={[20*60, 21*60, 22*60, 23*60, 24*60, 25*60, 26*60, 27*60, 28*60, 29*60, 30*60, 31*60, 32*60]}
+              domain={[20 * 60, 34 * 60]} // De 20h à 10h du matin (34h = 10h du lendemain)
+              ticks={[
+                20*60, 21*60, 22*60,
+                23*60, 23*60+30, // Plus de détails entre 23h et 1h
+                24*60, 24*60+30,
+                25*60, // 1h du matin
+                26*60, 27*60, 28*60, 29*60, 30*60, 31*60, 32*60, // 8h
+                32*60+30, // Plus de détails entre 8h et 10h
+                33*60, 33*60+30, 34*60 // Jusqu'à 10h
+              ]}
               tickFormatter={formatYAxis}
               tick={{ fontSize: 10 }}
             />
