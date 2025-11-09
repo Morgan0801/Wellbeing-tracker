@@ -24,86 +24,81 @@ const minutesToTime = (minutes: number): string => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
-// Échelle non-linéaire : transformer les minutes réelles en position sur le graphique
-// On donne plus d'espace visuel aux zones 23h-1h et 8h-10h
-const minutesToScaledPosition = (minutes: number): number => {
-  // Normaliser en heures (22h = 0, 23h = 1, 0h = 2, 1h = 3, etc.)
-  let hour = Math.floor(minutes / 60);
-  const min = minutes % 60;
+// Mapping explicite des positions pour éviter les erreurs de calcul
+const SCALE_MAP = [
+  { position: 0, hour: 22, minute: 0 },
+  { position: 50, hour: 22, minute: 30 },
+  { position: 100, hour: 23, minute: 0 },
+  { position: 150, hour: 23, minute: 20 },
+  { position: 200, hour: 23, minute: 40 },
+  { position: 225, hour: 23, minute: 50 },
+  { position: 250, hour: 0, minute: 0 },
+  { position: 275, hour: 0, minute: 10 },
+  { position: 300, hour: 0, minute: 20 },
+  { position: 325, hour: 0, minute: 40 },
+  { position: 350, hour: 1, minute: 0 },
+  { position: 400, hour: 3, minute: 0 },
+  { position: 450, hour: 5, minute: 0 },
+  { position: 500, hour: 7, minute: 0 },
+  { position: 550, hour: 8, minute: 0 },
+  { position: 600, hour: 8, minute: 30 },
+  { position: 650, hour: 9, minute: 0 },
+  { position: 700, hour: 9, minute: 30 },
+  { position: 750, hour: 10, minute: 0 },
+  { position: 800, hour: 10, minute: 30 },
+  { position: 850, hour: 11, minute: 0 },
+];
 
-  // Convertir en heures depuis 22h
-  if (hour >= 22) {
-    hour = hour - 22; // 22h -> 0, 23h -> 1
-  } else {
-    hour = hour + 2; // 0h -> 2, 1h -> 3, 8h -> 10, 11h -> 13
-  }
+// Convertir minutes réelles en position sur l'échelle non-linéaire
+const minutesToScaledPosition = (totalMinutes: number): number => {
+  let hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
 
-  const totalMinutes = hour * 60 + min;
+  // Normaliser les heures >= 24h
+  if (hour >= 24) hour -= 24;
 
-  // Échelle non-linéaire :
-  // 22h-23h (0-60min) -> 0-100 (facteur 1.67x)
-  // 23h-1h (60-180min) -> 100-350 (facteur 2.08x, zone étendue)
-  // 1h-8h (180-600min) -> 350-550 (facteur 0.48x, zone compressée)
-  // 8h-10h (600-720min) -> 550-750 (facteur 1.67x, zone étendue)
-  // 10h-11h (720-780min) -> 750-850 (facteur 1.67x)
+  // Trouver les deux points d'ancrage dans SCALE_MAP
+  let lower = SCALE_MAP[0];
+  let upper = SCALE_MAP[SCALE_MAP.length - 1];
 
-  if (totalMinutes <= 60) {
-    // 22h-23h
-    return (totalMinutes / 60) * 100;
-  } else if (totalMinutes <= 180) {
-    // 23h-1h (zone étendue)
-    return 100 + ((totalMinutes - 60) / 120) * 250;
-  } else if (totalMinutes <= 600) {
-    // 1h-8h (zone compressée)
-    return 350 + ((totalMinutes - 180) / 420) * 200;
-  } else if (totalMinutes <= 720) {
-    // 8h-10h (zone étendue)
-    return 550 + ((totalMinutes - 600) / 120) * 200;
-  } else {
-    // 10h-11h
-    return 750 + ((totalMinutes - 720) / 60) * 100;
-  }
-};
+  for (let i = 0; i < SCALE_MAP.length - 1; i++) {
+    const current = SCALE_MAP[i];
+    const next = SCALE_MAP[i + 1];
 
-// Fonction inverse pour l'affichage des ticks
-const scaledPositionToMinutes = (position: number): number => {
-  if (position <= 100) {
-    const minutes = (position / 100) * 60;
-    return 22 * 60 + minutes;
-  } else if (position <= 350) {
-    const minutes = 60 + ((position - 100) / 250) * 120;
-    const hour = Math.floor(minutes / 60);
-    const min = minutes % 60;
-    return (22 + hour) * 60 + min;
-  } else if (position <= 550) {
-    const minutes = 180 + ((position - 350) / 200) * 420;
-    const hour = Math.floor(minutes / 60);
-    const min = minutes % 60;
-    if (22 + hour >= 24) {
-      return (22 + hour - 24) * 60 + min;
+    if (
+      (current.hour === hour && current.minute <= minute && next.hour === hour && next.minute > minute) ||
+      (current.hour === hour && current.minute <= minute && next.hour > hour) ||
+      (current.hour < hour && next.hour === hour && next.minute > minute) ||
+      (current.hour < hour && next.hour > hour)
+    ) {
+      lower = current;
+      upper = next;
+      break;
     }
-    return (22 + hour) * 60 + min;
-  } else if (position <= 750) {
-    const minutes = 600 + ((position - 550) / 200) * 120;
-    const hour = Math.floor(minutes / 60);
-    const min = minutes % 60;
-    return (22 + hour - 24) * 60 + min;
-  } else {
-    const minutes = 720 + ((position - 750) / 100) * 60;
-    const hour = Math.floor(minutes / 60);
-    const min = minutes % 60;
-    return (22 + hour - 24) * 60 + min;
   }
+
+  // Interpolation linéaire entre les deux points
+  const lowerMinutes = lower.hour * 60 + lower.minute;
+  const upperMinutes = upper.hour * 60 + upper.minute;
+  const targetMinutes = hour * 60 + minute;
+
+  // Gérer le passage de minuit
+  const adjustedUpperMinutes = upperMinutes < lowerMinutes ? upperMinutes + 24 * 60 : upperMinutes;
+  const adjustedTargetMinutes = targetMinutes < lowerMinutes ? targetMinutes + 24 * 60 : targetMinutes;
+
+  const ratio = (adjustedTargetMinutes - lowerMinutes) / (adjustedUpperMinutes - lowerMinutes);
+  return lower.position + ratio * (upper.position - lower.position);
 };
 
-// Formatter pour l'axe Y (heures) - Affiche 22h, 23h, 0h, 1h, etc.
+// Formatter pour l'axe Y - utilise directement SCALE_MAP
 const formatYAxis = (position: number): string => {
-  const minutes = scaledPositionToMinutes(position);
-  let h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
+  // Trouver le point le plus proche dans SCALE_MAP
+  const closest = SCALE_MAP.reduce((prev, curr) =>
+    Math.abs(curr.position - position) < Math.abs(prev.position - position) ? curr : prev
+  );
 
-  if (m === 0) return `${h}h`;
-  return `${h}h${m.toString().padStart(2, '0')}`;
+  if (closest.minute === 0) return `${closest.hour}h`;
+  return `${closest.hour}h${closest.minute.toString().padStart(2, '0')}`;
 };
 
 export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
