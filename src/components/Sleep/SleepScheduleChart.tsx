@@ -24,12 +24,84 @@ const minutesToTime = (minutes: number): string => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
-// Formatter pour l'axe Y (heures) - Affiche 1h, 2h, 8h30 au lieu de 25h, 26h
-const formatYAxis = (minutes: number): string => {
+// Échelle non-linéaire : transformer les minutes réelles en position sur le graphique
+// On donne plus d'espace visuel aux zones 23h-1h et 8h-10h
+const minutesToScaledPosition = (minutes: number): number => {
+  // Normaliser en heures (22h = 0, 23h = 1, 0h = 2, 1h = 3, etc.)
+  let hour = Math.floor(minutes / 60);
+  const min = minutes % 60;
+
+  // Convertir en heures depuis 22h
+  if (hour >= 22) {
+    hour = hour - 22; // 22h -> 0, 23h -> 1
+  } else {
+    hour = hour + 2; // 0h -> 2, 1h -> 3, 8h -> 10, 11h -> 13
+  }
+
+  const totalMinutes = hour * 60 + min;
+
+  // Échelle non-linéaire :
+  // 22h-23h (0-60min) -> 0-100 (facteur 1.67x)
+  // 23h-1h (60-180min) -> 100-350 (facteur 2.08x, zone étendue)
+  // 1h-8h (180-600min) -> 350-550 (facteur 0.48x, zone compressée)
+  // 8h-10h (600-720min) -> 550-750 (facteur 1.67x, zone étendue)
+  // 10h-11h (720-780min) -> 750-850 (facteur 1.67x)
+
+  if (totalMinutes <= 60) {
+    // 22h-23h
+    return (totalMinutes / 60) * 100;
+  } else if (totalMinutes <= 180) {
+    // 23h-1h (zone étendue)
+    return 100 + ((totalMinutes - 60) / 120) * 250;
+  } else if (totalMinutes <= 600) {
+    // 1h-8h (zone compressée)
+    return 350 + ((totalMinutes - 180) / 420) * 200;
+  } else if (totalMinutes <= 720) {
+    // 8h-10h (zone étendue)
+    return 550 + ((totalMinutes - 600) / 120) * 200;
+  } else {
+    // 10h-11h
+    return 750 + ((totalMinutes - 720) / 60) * 100;
+  }
+};
+
+// Fonction inverse pour l'affichage des ticks
+const scaledPositionToMinutes = (position: number): number => {
+  if (position <= 100) {
+    const minutes = (position / 100) * 60;
+    return 22 * 60 + minutes;
+  } else if (position <= 350) {
+    const minutes = 60 + ((position - 100) / 250) * 120;
+    const hour = Math.floor(minutes / 60);
+    const min = minutes % 60;
+    return (22 + hour) * 60 + min;
+  } else if (position <= 550) {
+    const minutes = 180 + ((position - 350) / 200) * 420;
+    const hour = Math.floor(minutes / 60);
+    const min = minutes % 60;
+    if (22 + hour >= 24) {
+      return (22 + hour - 24) * 60 + min;
+    }
+    return (22 + hour) * 60 + min;
+  } else if (position <= 750) {
+    const minutes = 600 + ((position - 550) / 200) * 120;
+    const hour = Math.floor(minutes / 60);
+    const min = minutes % 60;
+    return (22 + hour - 24) * 60 + min;
+  } else {
+    const minutes = 720 + ((position - 750) / 100) * 60;
+    const hour = Math.floor(minutes / 60);
+    const min = minutes % 60;
+    return (22 + hour - 24) * 60 + min;
+  }
+};
+
+// Formatter pour l'axe Y (heures) - Affiche 22h, 23h, 0h, 1h, etc.
+const formatYAxis = (position: number): string => {
+  const minutes = scaledPositionToMinutes(position);
   let h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  // Si >= 24h, ramener à l'équivalent (ex: 25h -> 1h)
-  if (h >= 24) h = h - 24;
+  const m = Math.round(minutes % 60);
+
   if (m === 0) return `${h}h`;
   return `${h}h${m.toString().padStart(2, '0')}`;
 };
@@ -61,8 +133,8 @@ export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
         return {
           date: format(parseISO(log.date), 'dd/MM', { locale: fr }),
           fullDate: format(parseISO(log.date), 'PPP', { locale: fr }),
-          bedtime: bedtimeMinutes,
-          wakeup: wakeupMinutes,
+          bedtime: minutesToScaledPosition(bedtimeMinutes),
+          wakeup: minutesToScaledPosition(wakeupMinutes),
           bedtimeDisplay: log.bedtime,
           wakeupDisplay: log.wakeup_time,
         };
@@ -158,32 +230,33 @@ export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
               interval="preserveStartEnd"
             />
             <YAxis
-              domain={[20 * 60, 34 * 60]} // De 20h à 10h du matin (34h = 10h du lendemain)
+              domain={[0, 850]} // Échelle transformée de 22h à 11h
               ticks={[
-                20*60, // 20h
-                21*60, // 21h
-                22*60, // 22h
-                22*60+30, // 22h30
-                23*60, // 23h
-                23*60+30, // 23h30
-                24*60, // 0h (minuit)
-                24*60+30, // 0h30
-                25*60, // 1h du matin
-                26*60, // 2h
-                27*60, // 3h
-                28*60, // 4h
-                29*60, // 5h
-                30*60, // 6h
-                31*60, // 7h
-                32*60, // 8h
-                32*60+30, // 8h30
-                33*60, // 9h
-                33*60+30, // 9h30
-                34*60 // 10h
+                0,    // 22h
+                50,   // 22h30
+                100,  // 23h
+                150,  // 23h20
+                200,  // 23h40
+                225,  // 23h50
+                250,  // 0h (minuit)
+                275,  // 0h10
+                300,  // 0h20
+                325,  // 0h40
+                350,  // 1h
+                400,  // ~3h
+                450,  // ~5h
+                500,  // ~7h
+                550,  // 8h
+                600,  // 8h30
+                650,  // 9h
+                700,  // 9h30
+                750,  // 10h
+                800,  // 10h30
+                850   // 11h
               ]}
               tickFormatter={formatYAxis}
               tick={{ fontSize: 9 }}
-              width={45}
+              width={50}
             />
             <Tooltip
               contentStyle={{
