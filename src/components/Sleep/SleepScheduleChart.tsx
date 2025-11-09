@@ -160,16 +160,30 @@ export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
             <YAxis
               domain={[20 * 60, 34 * 60]} // De 20h à 10h du matin (34h = 10h du lendemain)
               ticks={[
-                20*60, 21*60, 22*60,
-                23*60, 23*60+30, // Plus de détails entre 23h et 1h
-                24*60, 24*60+30,
+                20*60, // 20h
+                21*60, // 21h
+                22*60, // 22h
+                22*60+30, // 22h30
+                23*60, // 23h
+                23*60+30, // 23h30
+                24*60, // 0h (minuit)
+                24*60+30, // 0h30
                 25*60, // 1h du matin
-                26*60, 27*60, 28*60, 29*60, 30*60, 31*60, 32*60, // 8h
-                32*60+30, // Plus de détails entre 8h et 10h
-                33*60, 33*60+30, 34*60 // Jusqu'à 10h
+                26*60, // 2h
+                27*60, // 3h
+                28*60, // 4h
+                29*60, // 5h
+                30*60, // 6h
+                31*60, // 7h
+                32*60, // 8h
+                32*60+30, // 8h30
+                33*60, // 9h
+                33*60+30, // 9h30
+                34*60 // 10h
               ]}
               tickFormatter={formatYAxis}
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 9 }}
+              width={45}
             />
             <Tooltip
               contentStyle={{
