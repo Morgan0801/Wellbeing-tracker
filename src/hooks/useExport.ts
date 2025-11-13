@@ -8,11 +8,13 @@ import { useHabits } from './useHabits';
 import { useTasks } from './useTasks';
 import { useGoals } from './useGoals';
 import { useGratitude } from './useGratitude';
-import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth, eachDayOfInterval, differenceInDays } from 'date-fns';
+import { format, parseISO, isWithinInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// Couleurs modernes
-const COLORS = {
+// Couleurs modernes - typées comme tuples
+type RGBColor = [number, number, number];
+
+const COLORS: Record<string, RGBColor> = {
   primary: [59, 130, 246], // blue-500
   success: [34, 197, 94], // green-500
   warning: [251, 191, 36], // amber-400
@@ -55,7 +57,7 @@ export function useExport() {
 
         // Page de résumé
         pdf.addPage();
-        let currentY = addSummaryPage(pdf, filteredData, options, pageWidth, pageHeight);
+        addSummaryPage(pdf, filteredData, options, pageWidth, pageHeight);
 
         // Sections détaillées
         if (options.sections.includes('mood') && filteredData.moods.length > 0) {
@@ -187,29 +189,13 @@ function filterDataByPeriod(options: ExportOptions, data: any) {
 }
 
 // Dessiner une carte avec fond coloré
-function drawCard(pdf: jsPDF, x: number, y: number, width: number, height: number, color: number[]) {
-  pdf.setFillColor(...color);
+function drawCard(pdf: jsPDF, x: number, y: number, width: number, height: number, color: RGBColor) {
+  pdf.setFillColor(color[0], color[1], color[2]);
   pdf.roundedRect(x, y, width, height, 2, 2, 'F');
 }
 
-// Dessiner un mini graphique en barres
-function drawMiniBarChart(pdf: jsPDF, x: number, y: number, width: number, height: number, data: number[], color: number[]) {
-  if (data.length === 0) return;
-
-  const max = Math.max(...data);
-  const barWidth = width / data.length;
-
-  pdf.setFillColor(...color);
-  data.forEach((value, index) => {
-    const barHeight = (value / max) * height;
-    const barX = x + (index * barWidth);
-    const barY = y + height - barHeight;
-    pdf.rect(barX, barY, barWidth - 1, barHeight, 'F');
-  });
-}
-
 // Dessiner un mini graphique en ligne
-function drawMiniLineChart(pdf: jsPDF, x: number, y: number, width: number, height: number, data: number[], color: number[]) {
+function drawMiniLineChart(pdf: jsPDF, x: number, y: number, width: number, height: number, data: number[], color: RGBColor) {
   if (data.length < 2) return;
 
   const max = Math.max(...data);
@@ -217,7 +203,7 @@ function drawMiniLineChart(pdf: jsPDF, x: number, y: number, width: number, heig
   const range = max - min || 1;
   const stepX = width / (data.length - 1);
 
-  pdf.setDrawColor(...color);
+  pdf.setDrawColor(color[0], color[1], color[2]);
   pdf.setLineWidth(0.5);
 
   for (let i = 0; i < data.length - 1; i++) {
@@ -229,7 +215,7 @@ function drawMiniLineChart(pdf: jsPDF, x: number, y: number, width: number, heig
   }
 
   // Points
-  pdf.setFillColor(...color);
+  pdf.setFillColor(color[0], color[1], color[2]);
   data.forEach((value, index) => {
     const pointX = x + (index * stepX);
     const pointY = y + height - ((value - min) / range * height);
@@ -292,7 +278,7 @@ function addCoverPage(pdf: jsPDF, options: ExportOptions, pageWidth: number, pag
   pdf.text(`Genere le ${format(new Date(), 'dd MMMM yyyy', { locale: fr })}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 }
 
-function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, pageWidth: number, pageHeight: number): number {
+function addSummaryPage(pdf: jsPDF, filteredData: any, _options: ExportOptions, pageWidth: number, _pageHeight: number): number {
   let currentY = 20;
 
   // Titre de la page
@@ -317,7 +303,7 @@ function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, p
   // Carte 1: Humeur
   if (filteredData.moods.length > 0) {
     drawCard(pdf, cardX, cardY, cardWidth, cardHeight, [239, 246, 255]);
-    pdf.setTextColor(...COLORS.primary);
+    pdf.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
     pdf.setFontSize(28);
     pdf.setFont('helvetica', 'bold');
     const avgMood = filteredData.moods.reduce((acc: number, m: any) => acc + m.score_global, 0) / filteredData.moods.length;
@@ -333,7 +319,7 @@ function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, p
   cardX += cardWidth + 10;
   if (filteredData.sleepLogs.length > 0) {
     drawCard(pdf, cardX, cardY, cardWidth, cardHeight, [243, 232, 255]);
-    pdf.setTextColor(...COLORS.purple);
+    pdf.setTextColor(COLORS.purple[0], COLORS.purple[1], COLORS.purple[2]);
     pdf.setFontSize(28);
     pdf.setFont('helvetica', 'bold');
     const avgSleep = filteredData.sleepLogs.reduce((acc: number, s: any) => acc + (s.total_hours || 0), 0) / filteredData.sleepLogs.length;
@@ -350,7 +336,7 @@ function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, p
 
   // Carte 3: Tâches
   drawCard(pdf, cardX, currentY, cardWidth, cardHeight, [236, 253, 245]);
-  pdf.setTextColor(...COLORS.success);
+  pdf.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
   pdf.setFontSize(28);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${filteredData.tasks.length}`, cardX + 5, currentY + 15);
@@ -363,7 +349,7 @@ function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, p
   // Carte 4: Objectifs
   cardX += cardWidth + 10;
   drawCard(pdf, cardX, currentY, cardWidth, cardHeight, [254, 242, 242]);
-  pdf.setTextColor(...COLORS.danger);
+  pdf.setTextColor(COLORS.danger[0], COLORS.danger[1], COLORS.danger[2]);
   pdf.setFontSize(28);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${filteredData.goals.length}`, cardX + 5, currentY + 15);
@@ -400,7 +386,7 @@ function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, p
       moodInsight = 'Humeur difficile. Pensez a consulter un professionnel.';
     }
 
-    pdf.setFillColor(...COLORS.primary);
+    pdf.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
     pdf.circle(18, currentY - 2, 1.5, 'F');
     pdf.text(moodInsight, 23, currentY);
     currentY += 7;
@@ -418,7 +404,7 @@ function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, p
       sleepInsight = `Sommeil excessif (${avgSleep.toFixed(1)}h). Consultez si fatigue persiste.`;
     }
 
-    pdf.setFillColor(...COLORS.purple);
+    pdf.setFillColor(COLORS.purple[0], COLORS.purple[1], COLORS.purple[2]);
     pdf.circle(18, currentY - 2, 1.5, 'F');
     pdf.text(sleepInsight, 23, currentY);
     currentY += 7;
@@ -426,7 +412,7 @@ function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, p
 
   // Insight 3: Productivité
   if (filteredData.tasks.length > 0) {
-    pdf.setFillColor(...COLORS.success);
+    pdf.setFillColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
     pdf.circle(18, currentY - 2, 1.5, 'F');
     pdf.text(`${filteredData.tasks.length} taches completees. Belle productivite !`, 23, currentY);
     currentY += 7;
@@ -437,11 +423,11 @@ function addSummaryPage(pdf: jsPDF, filteredData: any, options: ExportOptions, p
 
 // ================ SECTIONS DÉTAILLÉES ================
 
-async function addMoodSection(pdf: jsPDF, moods: any[], options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
+async function addMoodSection(pdf: jsPDF, moods: any[], _options: ExportOptions, pageWidth: number, _pageHeight: number): Promise<number> {
   let currentY = 20;
 
   // En-tête de section
-  pdf.setFillColor(...COLORS.primary);
+  pdf.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
   pdf.rect(15, currentY - 5, 4, 15, 'F');
 
   pdf.setTextColor(31, 41, 55);
@@ -460,7 +446,7 @@ async function addMoodSection(pdf: jsPDF, moods: any[], options: ExportOptions, 
   const cardHeight = 25;
 
   drawCard(pdf, 15, currentY, cardWidth, cardHeight, [239, 246, 255]);
-  pdf.setTextColor(...COLORS.primary);
+  pdf.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${avgMood.toFixed(1)}`, 17, currentY + 12);
@@ -470,7 +456,7 @@ async function addMoodSection(pdf: jsPDF, moods: any[], options: ExportOptions, 
   pdf.text('Score moyen', 17, currentY + 20);
 
   drawCard(pdf, 15 + cardWidth + 5, currentY, cardWidth, cardHeight, [240, 253, 244]);
-  pdf.setTextColor(...COLORS.success);
+  pdf.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${maxMood.toFixed(1)}`, 17 + cardWidth + 5, currentY + 12);
@@ -480,7 +466,7 @@ async function addMoodSection(pdf: jsPDF, moods: any[], options: ExportOptions, 
   pdf.text('Meilleur score', 17 + cardWidth + 5, currentY + 20);
 
   drawCard(pdf, 15 + (cardWidth + 5) * 2, currentY, cardWidth, cardHeight, [254, 242, 242]);
-  pdf.setTextColor(...COLORS.danger);
+  pdf.setTextColor(COLORS.danger[0], COLORS.danger[1], COLORS.danger[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${minMood.toFixed(1)}`, 17 + (cardWidth + 5) * 2, currentY + 12);
@@ -549,7 +535,7 @@ async function addMoodSection(pdf: jsPDF, moods: any[], options: ExportOptions, 
     topEmotions.forEach(([emotion, count], index) => {
       const barWidth = (count / moods.length) * (pageWidth - 100);
 
-      pdf.setFillColor(...COLORS.indigo);
+      pdf.setFillColor(COLORS.indigo[0], COLORS.indigo[1], COLORS.indigo[2]);
       pdf.rect(60, currentY + (index * 10), barWidth, 6, 'F');
 
       pdf.setFontSize(10);
@@ -569,11 +555,11 @@ async function addMoodSection(pdf: jsPDF, moods: any[], options: ExportOptions, 
   return currentY;
 }
 
-async function addSleepSection(pdf: jsPDF, sleepLogs: any[], options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
+async function addSleepSection(pdf: jsPDF, sleepLogs: any[], _options: ExportOptions, pageWidth: number, _pageHeight: number): Promise<number> {
   let currentY = 20;
 
   // En-tête de section
-  pdf.setFillColor(...COLORS.purple);
+  pdf.setFillColor(COLORS.purple[0], COLORS.purple[1], COLORS.purple[2]);
   pdf.rect(15, currentY - 5, 4, 15, 'F');
 
   pdf.setTextColor(31, 41, 55);
@@ -593,7 +579,7 @@ async function addSleepSection(pdf: jsPDF, sleepLogs: any[], options: ExportOpti
   const cardHeight = 25;
 
   drawCard(pdf, 15, currentY, cardWidth, cardHeight, [243, 232, 255]);
-  pdf.setTextColor(...COLORS.purple);
+  pdf.setTextColor(COLORS.purple[0], COLORS.purple[1], COLORS.purple[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${avgHours.toFixed(1)}h`, 17, currentY + 12);
@@ -603,7 +589,7 @@ async function addSleepSection(pdf: jsPDF, sleepLogs: any[], options: ExportOpti
   pdf.text('Duree moyenne', 17, currentY + 20);
 
   drawCard(pdf, 15 + cardWidth + 5, currentY, cardWidth, cardHeight, [243, 232, 255]);
-  pdf.setTextColor(...COLORS.purple);
+  pdf.setTextColor(COLORS.purple[0], COLORS.purple[1], COLORS.purple[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${avgQuality.toFixed(1)}/10`, 17 + cardWidth + 5, currentY + 12);
@@ -613,7 +599,7 @@ async function addSleepSection(pdf: jsPDF, sleepLogs: any[], options: ExportOpti
   pdf.text('Qualite moyenne', 17 + cardWidth + 5, currentY + 20);
 
   drawCard(pdf, 15 + (cardWidth + 5) * 2, currentY, cardWidth, cardHeight, [243, 232, 255]);
-  pdf.setTextColor(...COLORS.purple);
+  pdf.setTextColor(COLORS.purple[0], COLORS.purple[1], COLORS.purple[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${sleepLogs.length}`, 17 + (cardWidth + 5) * 2, currentY + 12);
@@ -677,11 +663,11 @@ async function addSleepSection(pdf: jsPDF, sleepLogs: any[], options: ExportOpti
   return currentY;
 }
 
-async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
+async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], _options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
   let currentY = 20;
 
   // En-tête de section
-  pdf.setFillColor(...COLORS.success);
+  pdf.setFillColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
   pdf.rect(15, currentY - 5, 4, 15, 'F');
 
   pdf.setTextColor(31, 41, 55);
@@ -698,7 +684,7 @@ async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], opt
   const cardHeight = 25;
 
   drawCard(pdf, 15, currentY, cardWidth, cardHeight, [236, 253, 245]);
-  pdf.setTextColor(...COLORS.success);
+  pdf.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${habits.length}`, 17, currentY + 12);
@@ -708,7 +694,7 @@ async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], opt
   pdf.text('Habitudes suivies', 17, currentY + 20);
 
   drawCard(pdf, 15 + cardWidth + 5, currentY, cardWidth, cardHeight, [236, 253, 245]);
-  pdf.setTextColor(...COLORS.success);
+  pdf.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${completedLogs.length}`, 17 + cardWidth + 5, currentY + 12);
@@ -718,7 +704,7 @@ async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], opt
   pdf.text('Logs completes', 17 + cardWidth + 5, currentY + 20);
 
   drawCard(pdf, 15 + (cardWidth + 5) * 2, currentY, cardWidth, cardHeight, [236, 253, 245]);
-  pdf.setTextColor(...COLORS.success);
+  pdf.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${completionRate.toFixed(0)}%`, 17 + (cardWidth + 5) * 2, currentY + 12);
@@ -743,7 +729,7 @@ async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], opt
 
     const barWidth = (habitRate / 100) * (pageWidth - 100);
 
-    pdf.setFillColor(...COLORS.success);
+    pdf.setFillColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
     pdf.rect(80, currentY, barWidth, 6, 'F');
 
     pdf.setFontSize(10);
@@ -766,11 +752,11 @@ async function addHabitsSection(pdf: jsPDF, habits: any[], habitLogs: any[], opt
   return currentY;
 }
 
-async function addTasksSection(pdf: jsPDF, tasks: any[], options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
+async function addTasksSection(pdf: jsPDF, tasks: any[], _options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
   let currentY = 20;
 
   // En-tête de section
-  pdf.setFillColor(...COLORS.indigo);
+  pdf.setFillColor(COLORS.indigo[0], COLORS.indigo[1], COLORS.indigo[2]);
   pdf.rect(15, currentY - 5, 4, 15, 'F');
 
   pdf.setTextColor(31, 41, 55);
@@ -789,7 +775,7 @@ async function addTasksSection(pdf: jsPDF, tasks: any[], options: ExportOptions,
   const cardHeight = 25;
 
   drawCard(pdf, 15, currentY, cardWidth, cardHeight, [238, 242, 255]);
-  pdf.setTextColor(...COLORS.indigo);
+  pdf.setTextColor(COLORS.indigo[0], COLORS.indigo[1], COLORS.indigo[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${tasks.length}`, 17, currentY + 12);
@@ -799,7 +785,7 @@ async function addTasksSection(pdf: jsPDF, tasks: any[], options: ExportOptions,
   pdf.text('Total completees', 17, currentY + 20);
 
   drawCard(pdf, 15 + cardWidth + 5, currentY, cardWidth, cardHeight, [254, 242, 242]);
-  pdf.setTextColor(...COLORS.danger);
+  pdf.setTextColor(COLORS.danger[0], COLORS.danger[1], COLORS.danger[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${highPriority}`, 17 + cardWidth + 5, currentY + 12);
@@ -809,7 +795,7 @@ async function addTasksSection(pdf: jsPDF, tasks: any[], options: ExportOptions,
   pdf.text('Priorite haute', 17 + cardWidth + 5, currentY + 20);
 
   drawCard(pdf, 15 + (cardWidth + 5) * 2, currentY, cardWidth, cardHeight, [238, 242, 255]);
-  pdf.setTextColor(...COLORS.indigo);
+  pdf.setTextColor(COLORS.indigo[0], COLORS.indigo[1], COLORS.indigo[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${mediumPriority + lowPriority}`, 17 + (cardWidth + 5) * 2, currentY + 12);
@@ -863,7 +849,7 @@ async function addTasksSection(pdf: jsPDF, tasks: any[], options: ExportOptions,
     pdf.setFont('helvetica', 'normal');
 
     // Bullet point
-    pdf.setFillColor(...COLORS.indigo);
+    pdf.setFillColor(COLORS.indigo[0], COLORS.indigo[1], COLORS.indigo[2]);
     pdf.circle(18, currentY - 2, 1, 'F');
 
     const taskTitle = task.title || 'Tache sans titre';
@@ -880,11 +866,11 @@ async function addTasksSection(pdf: jsPDF, tasks: any[], options: ExportOptions,
   return currentY;
 }
 
-async function addGoalsSection(pdf: jsPDF, goals: any[], options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
+async function addGoalsSection(pdf: jsPDF, goals: any[], _options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
   let currentY = 20;
 
   // En-tête de section
-  pdf.setFillColor(...COLORS.pink);
+  pdf.setFillColor(COLORS.pink[0], COLORS.pink[1], COLORS.pink[2]);
   pdf.rect(15, currentY - 5, 4, 15, 'F');
 
   pdf.setTextColor(31, 41, 55);
@@ -895,14 +881,13 @@ async function addGoalsSection(pdf: jsPDF, goals: any[], options: ExportOptions,
 
   // Statistiques
   const shortTerm = goals.filter(g => g.category === 'short_term').length;
-  const longTerm = goals.filter(g => g.category === 'long_term').length;
 
   // Cartes de stats
   const cardWidth = (pageWidth - 40) / 2;
   const cardHeight = 25;
 
   drawCard(pdf, 15, currentY, cardWidth, cardHeight, [252, 231, 243]);
-  pdf.setTextColor(...COLORS.pink);
+  pdf.setTextColor(COLORS.pink[0], COLORS.pink[1], COLORS.pink[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${goals.length}`, 17, currentY + 12);
@@ -912,7 +897,7 @@ async function addGoalsSection(pdf: jsPDF, goals: any[], options: ExportOptions,
   pdf.text('Total atteints', 17, currentY + 20);
 
   drawCard(pdf, 15 + cardWidth + 10, currentY, cardWidth, cardHeight, [252, 231, 243]);
-  pdf.setTextColor(...COLORS.pink);
+  pdf.setTextColor(COLORS.pink[0], COLORS.pink[1], COLORS.pink[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${shortTerm}`, 17 + cardWidth + 10, currentY + 12);
@@ -935,7 +920,7 @@ async function addGoalsSection(pdf: jsPDF, goals: any[], options: ExportOptions,
     pdf.setTextColor(31, 41, 55);
     pdf.setFont('helvetica', 'normal');
 
-    pdf.setFillColor(...COLORS.pink);
+    pdf.setFillColor(COLORS.pink[0], COLORS.pink[1], COLORS.pink[2]);
     pdf.circle(18, currentY - 2, 1, 'F');
 
     const goalTitle = goal.title || 'Objectif sans titre';
@@ -959,11 +944,11 @@ async function addGoalsSection(pdf: jsPDF, goals: any[], options: ExportOptions,
   return currentY;
 }
 
-async function addGratitudeSection(pdf: jsPDF, entries: any[], options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
+async function addGratitudeSection(pdf: jsPDF, entries: any[], _options: ExportOptions, pageWidth: number, pageHeight: number): Promise<number> {
   let currentY = 20;
 
   // En-tête de section
-  pdf.setFillColor(...COLORS.warning);
+  pdf.setFillColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
   pdf.rect(15, currentY - 5, 4, 15, 'F');
 
   pdf.setTextColor(31, 41, 55);
@@ -977,7 +962,7 @@ async function addGratitudeSection(pdf: jsPDF, entries: any[], options: ExportOp
   const cardHeight = 25;
 
   drawCard(pdf, 15, currentY, cardWidth, cardHeight, [254, 252, 232]);
-  pdf.setTextColor(...COLORS.warning);
+  pdf.setTextColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text(`${entries.length}`, 17, currentY + 12);
@@ -1008,7 +993,7 @@ async function addGratitudeSection(pdf: jsPDF, entries: any[], options: ExportOp
         pdf.setTextColor(31, 41, 55);
         pdf.setFont('helvetica', 'normal');
 
-        pdf.setFillColor(...COLORS.warning);
+        pdf.setFillColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
         pdf.circle(18, currentY - 2, 0.8, 'F');
 
         pdf.text(item.substring(0, 70), 23, currentY);
