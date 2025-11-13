@@ -160,11 +160,20 @@ function filterDataByPeriod(options: ExportOptions, data: any) {
   const interval = { start, end };
 
   return {
-    moods: data.moods.filter((m: any) => m.date && isWithinInterval(parseISO(m.date), interval)),
+    moods: data.moods.filter((m: any) => {
+      const dateField = m.datetime || m.date;
+      return dateField && isWithinInterval(parseISO(dateField), interval);
+    }),
     sleepLogs: data.sleepLogs.filter((s: any) => s.date && isWithinInterval(parseISO(s.date), interval)),
     habitLogs: data.habitLogs.filter((h: any) => h.date && isWithinInterval(parseISO(h.date), interval)),
-    tasks: data.tasks.filter((t: any) => t.completed && t.completed_at && isWithinInterval(parseISO(t.completed_at), interval)),
-    goals: data.goals.filter((g: any) => g.completed && g.completed_at && isWithinInterval(parseISO(g.completed_at), interval)),
+    tasks: data.tasks.filter((t: any) => {
+      if (!t.completed || !t.completed_at) return false;
+      return isWithinInterval(parseISO(t.completed_at), interval);
+    }),
+    goals: data.goals.filter((g: any) => {
+      if (!g.completed || !g.completed_at) return false;
+      return isWithinInterval(parseISO(g.completed_at), interval);
+    }),
     gratitudeEntries: data.gratitudeEntries.filter((e: any) => e.date && isWithinInterval(parseISO(e.date), interval)),
   };
 }
