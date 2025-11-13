@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
+import toast from 'react-hot-toast';
 import type { ExportOptions } from '@/types/phase5-types';
 import { useMood } from './useMood';
 import { useSleep } from './useSleep';
@@ -19,84 +20,102 @@ export function useExport() {
 
   const generatePDF = useMutation({
     mutationFn: async (options: ExportOptions) => {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      let currentY = 20;
+      try {
+        console.log('Début de la génération du PDF...', options);
 
-      // En-tête
-      pdf.setFontSize(24);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Wellbeing Tracker', pageWidth / 2, currentY, { align: 'center' });
-      
-      currentY += 10;
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'normal');
-      
-      const title = getReportTitle(options);
-      pdf.text(title, pageWidth / 2, currentY, { align: 'center' });
-      
-      currentY += 8;
-      pdf.setFontSize(10);
-      pdf.text(`Généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm')}`, pageWidth / 2, currentY, { align: 'center' });
-      
-      currentY += 15;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        let currentY = 20;
 
-      // Ligne séparatrice
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(15, currentY, pageWidth - 15, currentY);
-      currentY += 10;
+        // En-tête
+        pdf.setFontSize(24);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Wellbeing Tracker', pageWidth / 2, currentY, { align: 'center' });
 
-      // Filtrer les données selon la période
-      const filteredData = filterDataByPeriod(
-        options,
-        { moods, sleepLogs, habitLogs, tasks, goals, gratitudeEntries }
-      );
+        currentY += 10;
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'normal');
 
-      // Sections
-      if (options.sections.includes('mood') && filteredData.moods.length > 0) {
-        currentY = await addMoodSection(pdf, filteredData.moods, currentY, pageHeight);
-      }
+        const title = getReportTitle(options);
+        pdf.text(title, pageWidth / 2, currentY, { align: 'center' });
 
-      if (options.sections.includes('sleep') && filteredData.sleepLogs.length > 0) {
-        currentY = await addSleepSection(pdf, filteredData.sleepLogs, currentY, pageHeight);
-      }
+        currentY += 8;
+        pdf.setFontSize(10);
+        pdf.text(`Généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm')}`, pageWidth / 2, currentY, { align: 'center' });
 
-      if (options.sections.includes('habits') && filteredData.habitLogs.length > 0) {
-        currentY = await addHabitsSection(pdf, habits, filteredData.habitLogs, currentY, pageHeight);
-      }
+        currentY += 15;
 
-      if (options.sections.includes('tasks') && filteredData.tasks.length > 0) {
-        currentY = await addTasksSection(pdf, filteredData.tasks, currentY, pageHeight);
-      }
+        // Ligne séparatrice
+        pdf.setDrawColor(200, 200, 200);
+        pdf.line(15, currentY, pageWidth - 15, currentY);
+        currentY += 10;
 
-      if (options.sections.includes('goals') && filteredData.goals.length > 0) {
-        currentY = await addGoalsSection(pdf, filteredData.goals, currentY, pageHeight);
-      }
-
-      if (options.sections.includes('gratitude') && filteredData.gratitudeEntries.length > 0) {
-        currentY = await addGratitudeSection(pdf, filteredData.gratitudeEntries, currentY, pageHeight);
-      }
-
-      // Pied de page
-      const totalPages = pdf.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(8);
-        pdf.setTextColor(150);
-        pdf.text(
-          `Page ${i} / ${totalPages}`,
-          pageWidth / 2,
-          pageHeight - 10,
-          { align: 'center' }
+        // Filtrer les données selon la période
+        const filteredData = filterDataByPeriod(
+          options,
+          { moods, sleepLogs, habitLogs, tasks, goals, gratitudeEntries }
         );
+
+        console.log('Données filtrées:', filteredData);
+
+        // Sections
+        if (options.sections.includes('mood') && filteredData.moods.length > 0) {
+          currentY = await addMoodSection(pdf, filteredData.moods, currentY, pageHeight);
+        }
+
+        if (options.sections.includes('sleep') && filteredData.sleepLogs.length > 0) {
+          currentY = await addSleepSection(pdf, filteredData.sleepLogs, currentY, pageHeight);
+        }
+
+        if (options.sections.includes('habits') && filteredData.habitLogs.length > 0) {
+          currentY = await addHabitsSection(pdf, habits, filteredData.habitLogs, currentY, pageHeight);
+        }
+
+        if (options.sections.includes('tasks') && filteredData.tasks.length > 0) {
+          currentY = await addTasksSection(pdf, filteredData.tasks, currentY, pageHeight);
+        }
+
+        if (options.sections.includes('goals') && filteredData.goals.length > 0) {
+          currentY = await addGoalsSection(pdf, filteredData.goals, currentY, pageHeight);
+        }
+
+        if (options.sections.includes('gratitude') && filteredData.gratitudeEntries.length > 0) {
+          currentY = await addGratitudeSection(pdf, filteredData.gratitudeEntries, currentY, pageHeight);
+        }
+
+        // Pied de page
+        const totalPages = pdf.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(8);
+          pdf.setTextColor(150);
+          pdf.text(
+            `Page ${i} / ${totalPages}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          );
+        }
+
+        // Sauvegarder
+        const filename = `wellbeing-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+        console.log('Sauvegarde du PDF:', filename);
+        pdf.save(filename);
+
+        return filename;
+      } catch (error) {
+        console.error('Erreur lors de la génération du PDF:', error);
+        throw error;
       }
-
-      // Sauvegarder
-      const filename = `wellbeing-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
-      pdf.save(filename);
-
-      return filename;
+    },
+    onSuccess: (filename) => {
+      console.log('PDF généré avec succès:', filename);
+      toast.success(`PDF généré avec succès : ${filename}`);
+    },
+    onError: (error) => {
+      console.error('Erreur mutation PDF:', error);
+      toast.error(`Erreur lors de la génération du PDF : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     },
   });
 
