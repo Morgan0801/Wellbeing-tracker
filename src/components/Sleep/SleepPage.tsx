@@ -75,16 +75,20 @@ export function SleepPage() {
 
       {/* ✅ NOUVEAU LAYOUT : GRAPHIQUES À GAUCHE + CALENDRIER À DROITE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Colonne gauche : Statistiques et graphiques (2/3 de la largeur) */}
+        {/* Colonne gauche : Statistiques (2/3 de la largeur) */}
         <div className="lg:col-span-2 space-y-6">
           <SleepStatsChart sleepLogs={sleepLogs} periodDays={selectedPeriod} />
-          <SleepScheduleChart sleepLogs={sleepLogs} />
         </div>
 
         {/* Colonne droite : Calendrier (1/3 de la largeur) */}
         <div className="lg:col-span-1">
           <SleepCalendar sleepLogs={sleepLogs} />
         </div>
+      </div>
+
+      {/* ✅ Graphique des horaires en pleine largeur */}
+      <div className="w-full">
+        <SleepScheduleChart sleepLogs={sleepLogs} />
       </div>
 
       {/* Liste des logs récents */}
@@ -99,7 +103,7 @@ export function SleepPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {sleepLogs.slice(0, 10).map((sleep) => (
+            {sleepLogs.slice(0, 7).map((sleep) => (
               <SleepCard key={sleep.id} sleep={sleep} onEdit={handleEdit} />
             ))}
           </div>
