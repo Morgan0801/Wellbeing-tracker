@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { EmotionSelector } from './EmotionSelector';
-import { DomainSliders } from './DomainSliders';
+import { ActivityCheckboxes } from './ActivityCheckboxes';
 import { useMood } from '@/hooks/useMood';
-import { MOOD_LEVELS, DomainType, MoodLog } from '@/types';
+import { useActivities } from '@/hooks/useActivities';
+import { MOOD_LEVELS, MoodLog } from '@/types';
 import { WeatherData } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -31,102 +32,94 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [moodDate, setMoodDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [domains, setDomains] = useState<Record<DomainType, number>>({
-    travail: 0,
-    sport: 0,
-    amour: 0,
-    amis: 0,
-    famille: 0,
-    finances: 0,
-    loisirs: 0,
-    bienetre: 0,
-  });
+  const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
+  const [energyLevel, setEnergyLevel] = useState(5);
 
   const { addMood, updateMood, isAdding, isUpdating } = useMood();
+  const { activityTypes, addActivityType, saveMoodActivities } = useActivities();
 
   useEffect(() => {
     if (editingMood && open) {
       setScoreGlobal(editingMood.score_global);
       setSelectedEmotions(editingMood.emotions || []);
       setNote(editingMood.note || '');
+      setEnergyLevel(editingMood.energy_level || 5);
       try {
         setMoodDate(format(parseISO(editingMood.datetime), 'yyyy-MM-dd'));
       } catch {
         setMoodDate(format(new Date(), 'yyyy-MM-dd'));
       }
-      // TODO: populate domains from mood_domains if available
     } else if (!editingMood && open) {
       setScoreGlobal(5);
       setSelectedEmotions([]);
       setNote('');
       setMoodDate(format(new Date(), 'yyyy-MM-dd'));
-      setDomains({
-        travail: 0,
-        sport: 0,
-        amour: 0,
-        amis: 0,
-        famille: 0,
-        finances: 0,
-        loisirs: 0,
-        bienetre: 0,
-      });
+      setSelectedActivities(new Set());
+      setEnergyLevel(5);
       setStep(1);
     }
   }, [editingMood, open]);
 
-  const handleDomainChange = (domain: DomainType, value: number) => {
-    setDomains((prev) => ({ ...prev, [domain]: value }));
+  const handleAddCustomActivity = (name: string, emoji: string, category: string) => {
+    addActivityType.mutate({
+      name,
+      emoji,
+      category: category as 'custom',
+      is_default: false,
+      is_active: true,
+    });
   };
 
-  const handleSubmit = () => {
-    const domainsToSave = Object.entries(domains)
-      .filter(([, impact]) => impact !== 0)
-      .map(([domain, impact]) => ({ domain, impact }));
-
-    // Créer un datetime complet avec la date choisie et l'heure actuelle
+  const handleSubmit = async () => {
     const now = new Date();
     const [year, month, day] = moodDate.split('-').map(Number);
     const datetimeWithTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes());
     const datetimeISO = datetimeWithTime.toISOString();
 
+    // Préparer les activités: done = in set, not done = not in set
+    const activitiesToSave = activityTypes.map(a => ({
+      activity_type_id: a.id,
+      done: selectedActivities.has(a.id),
+    }));
+
     if (editingMood) {
-      updateMood({
+      await updateMood({
         id: editingMood.id,
         updates: {
           score_global: scoreGlobal,
           emotions: selectedEmotions,
           note: note || undefined,
           weather: weather || undefined,
-          domains: domainsToSave,
+          energy_level: energyLevel,
           datetime: datetimeISO,
         },
       });
+
+      if (activitiesToSave.length > 0) {
+        saveMoodActivities.mutate({
+          moodId: editingMood.id,
+          activities: activitiesToSave,
+        });
+      }
     } else {
       addMood({
         score_global: scoreGlobal,
         emotions: selectedEmotions,
         note: note || undefined,
         weather: weather || undefined,
-        domains: domainsToSave,
+        energy_level: energyLevel,
         datetime: datetimeISO,
       });
     }
 
+    // Reset form
     setStep(1);
     setScoreGlobal(5);
     setSelectedEmotions([]);
     setNote('');
     setMoodDate(format(new Date(), 'yyyy-MM-dd'));
-    setDomains({
-      travail: 0,
-      sport: 0,
-      amour: 0,
-      amis: 0,
-      famille: 0,
-      finances: 0,
-      loisirs: 0,
-      bienetre: 0,
-    });
+    setSelectedActivities(new Set());
+    setEnergyLevel(5);
     onOpenChange(false);
   };
 
@@ -140,7 +133,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)} className="max-w-2xl">
+      <DialogContent onClose={() => onOpenChange(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editingMood ? 'Modifier le mood' : 'Comment te sens-tu ?'}
@@ -149,6 +142,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Étape 1: Score global */}
           {step === 1 && (
             <div className="space-y-4">
               <Label>Score global du moment</Label>
@@ -170,28 +164,46 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
                     type="button"
                     onClick={() => setScoreGlobal(level.range[0])}
                     className={cn(
-                      'p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2',
+                      'p-3 md:p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-1 md:gap-2',
                       scoreGlobal >= level.range[0] && scoreGlobal <= level.range[1]
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300',
                     )}
                   >
-                    <span className="text-3xl">{level.emoji}</span>
-                    <span className="text-xs font-medium">{level.label}</span>
-                    <span className="text-xs text-gray-500">
-                      {level.range[0]}-{level.range[1]}
-                    </span>
+                    <span className="text-2xl md:text-3xl">{level.emoji}</span>
+                    <span className="text-xs font-medium hidden sm:block">{level.label}</span>
                   </button>
                 ))}
+              </div>
+
+              {/* Energy Level Slider */}
+              <div className="pt-4 border-t">
+                <Label>Niveau d'énergie</Label>
+                <div className="flex items-center gap-4 mt-2">
+                  <span className="text-2xl">🔋</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={10}
+                    value={energyLevel}
+                    onChange={(e) => setEnergyLevel(Number(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className="text-lg font-bold w-8 text-center">{energyLevel}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  1 = épuisé, 10 = plein d'énergie
+                </p>
               </div>
             </div>
           )}
 
+          {/* Étape 2: Émotions */}
           {step === 2 && (
             <div className="space-y-4">
               <Label>Quelles émotions ressens-tu ?</Label>
-              <p className="text-sm text-gray-500">
-                Sélectionne toutes les émotions qui correspondent à ton état actuel.
+              <p className="text-sm text-muted-foreground">
+                Sélectionne toutes les émotions qui correspondent.
               </p>
               <EmotionSelector
                 selectedEmotions={selectedEmotions}
@@ -200,28 +212,32 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
             </div>
           )}
 
+          {/* Étape 3: Activités (Bearable-style) */}
           {step === 3 && (
             <div className="space-y-4">
-              <Label>Impact par domaine de vie</Label>
-              <p className="text-sm text-gray-500">
-                Glisse les curseurs pour indiquer l&apos;impact de chaque domaine sur ton humeur (-5 à +5).
-              </p>
-              <DomainSliders domains={domains} onChange={handleDomainChange} />
+              <Label>Qu'as-tu fait aujourd'hui ?</Label>
+              <ActivityCheckboxes
+                activityTypes={activityTypes}
+                selectedActivities={selectedActivities}
+                onChange={setSelectedActivities}
+                onAddCustom={handleAddCustomActivity}
+              />
             </div>
           )}
 
-  {step === 4 && (
+          {/* Étape 4: Note et date */}
+          {step === 4 && (
             <div className="space-y-4">
               <Label htmlFor="note">Note (optionnel)</Label>
-              <p className="text-sm text-gray-500">
-                Ajoute du contexte ou des détails sur ce que tu ressens.
+              <p className="text-sm text-muted-foreground">
+                Ajoute du contexte ou des détails.
               </p>
               <Textarea
                 id="note"
                 placeholder="Que se passe-t-il ? Contexte, détails..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                rows={5}
+                rows={4}
               />
               <div className="space-y-2">
                 <Label htmlFor="mood-date">Date du ressenti</Label>
@@ -232,15 +248,13 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
                   max={format(new Date(), 'yyyy-MM-dd')}
                   onChange={(e) => setMoodDate(e.target.value)}
                 />
-                <p className="text-xs text-gray-500">
-                  Sélectionne un jour précédent pour enregistrer un mood passé.
-                </p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="flex gap-2 justify-between">
+        {/* Navigation */}
+        <div className="flex gap-2 justify-between pt-4 border-t">
           {step > 1 && (
             <Button variant="outline" onClick={() => setStep(step - 1)}>
               Précédent
@@ -254,8 +268,8 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
               {isAdding || isUpdating
                 ? 'Enregistrement...'
                 : editingMood
-                ? 'Modifier'
-                : 'Enregistrer'}
+                  ? 'Modifier'
+                  : 'Enregistrer'}
             </Button>
           )}
         </div>

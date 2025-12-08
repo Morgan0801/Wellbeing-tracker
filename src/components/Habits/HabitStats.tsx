@@ -11,6 +11,8 @@ import { Calendar, TrendingUp } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 interface HabitStatsProps {
   open: boolean;
@@ -20,6 +22,7 @@ interface HabitStatsProps {
 
 export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
   const { getHabitLogs } = useHabits();
+  const [showAverage, setShowAverage] = useState(false);
 
   if (!habit) return null;
 
@@ -42,16 +45,18 @@ export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
     return logDate >= monthStart && logDate <= monthEnd;
   });
 
+  // Calendrier du mois
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
   // Statistiques hebdomadaires
   const weekCompletedCount = weekLogs.filter((l) => l.completed).length;
   const weekTotalQuantity = weekLogs.reduce((sum, log) => sum + (log.quantity || 0), 0);
+  const weekAverageQuantity = weekTotalQuantity / 7;
 
   // Statistiques mensuelles
   const monthCompletedCount = monthLogs.filter((l) => l.completed).length;
   const monthTotalQuantity = monthLogs.reduce((sum, log) => sum + (log.quantity || 0), 0);
-
-  // Calendrier du mois
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const monthAverageQuantity = monthTotalQuantity / daysInMonth.length;
 
   const getDayStatus = (day: Date) => {
     // Récupère TOUS les logs du jour (support multi-logs par jour)
@@ -85,6 +90,37 @@ export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Toggle Total/Moyenne pour habitudes quantifiables */}
+          {habit.quantifiable && (
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Affichage :</span>
+              <div className="flex gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowAverage(false)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    !showAverage
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  Total
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowAverage(true)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    showAverage
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  Moyenne
+                </motion.button>
+              </div>
+            </div>
+          )}
+
           {/* Stats semaine */}
           <Card>
             <CardHeader>
@@ -99,13 +135,19 @@ export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
               </div>
               {habit.quantifiable && weekTotalQuantity > 0 && (
                 <div>
-                  <p className="text-sm text-gray-500">Total</p>
+                  <p className="text-sm text-gray-500">
+                    {showAverage ? 'Moyenne par jour' : 'Total'}
+                  </p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {weekTotalQuantity} {habit.unit}
+                    {showAverage
+                      ? `${weekAverageQuantity.toFixed(1)} ${habit.unit}/jour`
+                      : `${weekTotalQuantity} ${habit.unit}`}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {weekLogs.map((l) => l.quantity).filter(Boolean).join(' + ')} = {weekTotalQuantity} {habit.unit}
-                  </p>
+                  {!showAverage && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {weekLogs.map((l) => l.quantity).filter(Boolean).join(' + ')} = {weekTotalQuantity} {habit.unit}
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -125,9 +167,13 @@ export function HabitStats({ open, onOpenChange, habit }: HabitStatsProps) {
               </div>
               {habit.quantifiable && monthTotalQuantity > 0 && (
                 <div>
-                  <p className="text-sm text-gray-500">Total</p>
+                  <p className="text-sm text-gray-500">
+                    {showAverage ? 'Moyenne par jour' : 'Total'}
+                  </p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {monthTotalQuantity} {habit.unit}
+                    {showAverage
+                      ? `${monthAverageQuantity.toFixed(1)} ${habit.unit}/jour`
+                      : `${monthTotalQuantity} ${habit.unit}`}
                   </p>
                 </div>
               )}

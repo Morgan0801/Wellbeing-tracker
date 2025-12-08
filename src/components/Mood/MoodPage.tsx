@@ -8,6 +8,7 @@ import { MoodHistory } from './MoodHistory';
 import { MoodChart } from './MoodChart';
 import { MoodInsights } from './MoodInsights';
 import { MoodHeatmap } from './MoodHeatmap';
+import { ActivityInsights } from './ActivityInsights';
 import { useMood } from '@/hooks/useMood';
 import { getMoodEmoji } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -107,6 +108,9 @@ export function MoodPage() {
 
       {/* Insights émotionnels */}
       <MoodInsights />
+
+      {/* Corrélations Activités-Humeur */}
+      <ActivityInsights />
 
       {/* Historique des humeurs */}
       <Card>

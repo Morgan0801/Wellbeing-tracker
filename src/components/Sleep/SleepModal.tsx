@@ -52,6 +52,7 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
   const [bedtime, setBedtime] = useState('23:00');
   const [wakeupTime, setWakeupTime] = useState('07:00');
   const [qualityScore, setQualityScore] = useState('7');
+  const [sleptAlone, setSleptAlone] = useState(true);
 
   useEffect(() => {
     if (editSleep) {
@@ -63,6 +64,7 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
       setBedtime(editSleep.bedtime);
       setWakeupTime(editSleep.wakeup_time);
       setQualityScore(editSleep.quality_score.toString());
+      setSleptAlone(editSleep.slept_alone ?? true);
     } else {
       // Reset values
       setDate(new Date().toISOString().split('T')[0]);
@@ -73,6 +75,7 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
       setBedtime('23:00');
       setWakeupTime('07:00');
       setQualityScore('7');
+      setSleptAlone(true);
     }
   }, [editSleep, open]);
 
@@ -88,6 +91,7 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
       bedtime,
       wakeup_time: wakeupTime,
       quality_score: parseInt(qualityScore),
+      slept_alone: sleptAlone,
     };
 
     if (editSleep) {
@@ -220,6 +224,29 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
             />
           </div>
 
+          {/* Dormi seul ou en couple */}
+          <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{sleptAlone ? '🛏️' : '💑'}</span>
+              <div>
+                <Label>Situation</Label>
+                <p className="text-xs text-muted-foreground">
+                  {sleptAlone ? 'Dormi seul(e)' : 'Dormi en couple'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSleptAlone(!sleptAlone)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${sleptAlone
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                  : 'bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300'
+                }`}
+            >
+              {sleptAlone ? '🛏️ Seul(e)' : '💑 En couple'}
+            </button>
+          </div>
+
           <div className="flex gap-2 pt-4">
             <Button
               type="button"
@@ -233,8 +260,8 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
               {isAddingSleepLog
                 ? 'Enregistrement...'
                 : editSleep
-                ? 'Modifier'
-                : 'Enregistrer'}
+                  ? 'Modifier'
+                  : 'Enregistrer'}
             </Button>
           </div>
         </form>

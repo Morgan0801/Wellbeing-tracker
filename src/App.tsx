@@ -11,6 +11,8 @@ import { Dashboard } from './components/Dashboard/Dashboard';
 import { MoodPage } from './components/Mood/MoodPage';
 import { HabitsPage } from './components/Habits/HabitsPage';
 import { TasksPage } from './components/Tasks/TasksPage';
+import { FocusPage } from './components/Focus/FocusPage';
+import { CalendarPage } from './components/Calendar/CalendarPage';
 import { SleepPage } from './components/Sleep/SleepPage';
 import { GoalsPage } from './components/Goals/GoalsPage';
 import { GratitudePage } from './components/Gratitude/GratitudePage';
@@ -26,7 +28,7 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
@@ -51,12 +53,13 @@ function App() {
           <Header />
           <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {/* Main content with padding bottom for mobile nav */}
-          <main className="pb-16 md:pb-0">
+          <main className="pb-16 md:pb-0 px-4 md:px-10">
             {activeTab === 'dashboard' && <Dashboard />}
             {activeTab === 'mood' && <MoodPage />}
             {activeTab === 'habits' && <HabitsPage />}
             {activeTab === 'tasks' && <TasksPage />}
+            {activeTab === 'focus' && <FocusPage />}
+            {activeTab === 'calendar' && <CalendarPage />}
             {activeTab === 'sleep' && <SleepPage />}
             {activeTab === 'goals' && <GoalsPage />}
             {activeTab === 'gratitude' && <GratitudePage />}
@@ -68,14 +71,12 @@ function App() {
             {activeTab === 'theme' && <ThemeSettings />}
           </main>
 
-          {/* Bottom Navigation (Mobile only) */}
           <BottomNavigation
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onPlusClick={() => setIsPlusMenuOpen(true)}
           />
 
-          {/* Menu Plus (Drawer) */}
           <MenuPlus
             isOpen={isPlusMenuOpen}
             onClose={() => setIsPlusMenuOpen(false)}

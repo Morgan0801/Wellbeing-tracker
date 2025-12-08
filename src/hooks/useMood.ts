@@ -12,6 +12,7 @@ interface AddMoodParams {
   weather?: any;
   domains?: DomainImpact[];
   datetime?: string;
+  energy_level?: number;
 }
 
 interface UpdateMoodParams {
@@ -77,6 +78,7 @@ export function useMood() {
             emotions: moodData.emotions,
             note: moodData.note,
             weather: moodData.weather,
+            energy_level: moodData.energy_level ?? 5,
           },
         ])
         .select()
@@ -135,6 +137,9 @@ export function useMood() {
       }
       if (updates.datetime !== undefined) {
         payload.datetime = toIsoDateTime(updates.datetime);
+      }
+      if (updates.energy_level !== undefined) {
+        payload.energy_level = updates.energy_level;
       }
 
       const { data, error } = await supabase

@@ -46,7 +46,7 @@ export function SleepStatsChart({ sleepLogs, periodDays }: SleepStatsChartProps)
     const cutoffDate = startOfDay(subDays(new Date(), periodDays));
     return sleepLogs
       .filter((log) => new Date(log.date) >= cutoffDate)
-      .slice(0, 30) // Limiter à 30 points max pour la lisibilité
+      .slice(0, 7) // Limiter à 7 points pour une meilleure lisibilité
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [sleepLogs, periodDays]);
 

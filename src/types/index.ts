@@ -15,7 +15,7 @@ export interface Mood {
   id: string;
   user_id: string;
   datetime: string;
-  score_global: number; // 1-10
+  score_global: number;
   emotions: string[];
   note?: string;
   weather?: WeatherData;
@@ -33,18 +33,12 @@ export interface MoodDomain {
   id: string;
   mood_id: string;
   domain: DomainType;
-  impact: number; // -5 to +5
+  impact: number;
 }
 
 export type DomainType = 
-  | 'travail'
-  | 'sport'
-  | 'amour'
-  | 'amis'
-  | 'famille'
-  | 'finances'
-  | 'loisirs'
-  | 'bienetre';
+  | 'travail' | 'sport' | 'amour' | 'amis' 
+  | 'famille' | 'finances' | 'loisirs' | 'bienetre';
 
 export const DOMAINS: { type: DomainType; label: string; emoji: string; color: string }[] = [
   { type: 'travail', label: 'Travail', emoji: '💼', color: '#5C6BC0' },
@@ -68,14 +62,17 @@ export const EMOTIONS = [
   { emoji: '🔥', label: 'Énergique', type: 'positive' },
   { emoji: '😎', label: 'Confiant', type: 'positive' },
   { emoji: '🙏', label: 'Reconnaissant', type: 'positive' },
-  
+  { emoji: '🎯', label: 'Concentré', type: 'positive' },
+  { emoji: '✨', label: 'Optimiste', type: 'positive' },
+  { emoji: '💫', label: 'Accompli', type: 'positive' },
   // Neutres
   { emoji: '😐', label: 'Neutre', type: 'neutral' },
   { emoji: '🤔', label: 'Pensif', type: 'neutral' },
   { emoji: '😴', label: 'Fatigué', type: 'neutral' },
   { emoji: '😕', label: 'Incertain', type: 'neutral' },
   { emoji: '🥱', label: 'Ennuyé', type: 'neutral' },
-  
+  { emoji: '😶', label: 'Indifférent', type: 'neutral' },
+  { emoji: '🤷', label: 'Perplexe', type: 'neutral' },
   // Négatives
   { emoji: '😰', label: 'Anxieux', type: 'negative' },
   { emoji: '😢', label: 'Triste', type: 'negative' },
@@ -86,6 +83,14 @@ export const EMOTIONS = [
   { emoji: '😣', label: 'Frustré', type: 'negative' },
   { emoji: '🙁', label: 'Pessimiste', type: 'negative' },
   { emoji: '😖', label: 'Stressé', type: 'negative' },
+  { emoji: '🦥', label: 'Paresseux', type: 'negative' },
+  { emoji: '😑', label: 'Laxiste', type: 'negative' },
+  { emoji: '🤦', label: 'Dépassé', type: 'negative' },
+  { emoji: '😤', label: 'Impatient', type: 'negative' },
+  { emoji: '😓', label: 'Épuisé', type: 'negative' },
+  { emoji: '😬', label: 'Nerveux', type: 'negative' },
+  { emoji: '🥺', label: 'Vulnérable', type: 'negative' },
+  { emoji: '😪', label: 'Démotivé', type: 'negative' },
 ];
 
 export const MOOD_LEVELS = [
@@ -95,10 +100,6 @@ export const MOOD_LEVELS = [
   { range: [7, 8], emoji: '🙂', label: 'Bien', color: '#9CCC65' },
   { range: [9, 10], emoji: '😊', label: 'Très bien', color: '#66BB6A' },
 ];
-
-// ============================================
-// PHASE 3 - NOUVEAUX TYPES
-// ============================================
 
 // HABITS
 export interface Habit {
@@ -113,18 +114,8 @@ export interface Habit {
   created_at: string;
 }
 
-export type HabitCategory = 
-  | 'sante_sport'
-  | 'bienetre_mental'
-  | 'productivite'
-  | 'alimentation'
-  | 'loisirs';
-
-export type HabitFrequency = 
-  | 'daily'
-  | '2x_week'
-  | '3x_week'
-  | 'weekly';
+export type HabitCategory = 'sante_sport' | 'bienetre_mental' | 'productivite' | 'alimentation' | 'loisirs';
+export type HabitFrequency = 'daily' | '2x_week' | '3x_week' | 'weekly';
 
 export interface HabitLog {
   id: string;
@@ -156,6 +147,8 @@ export interface Task {
   title: string;
   quadrant: 1 | 2 | 3 | 4;
   deadline?: string;
+  scheduled_time?: string;
+  duration_minutes?: number;
   recurring: boolean;
   recurrence_pattern?: string;
   completed: boolean;
@@ -164,34 +157,10 @@ export interface Task {
 }
 
 export const TASK_QUADRANTS = [
-  { 
-    id: 1, 
-    label: 'Urgent & Important', 
-    description: 'À faire immédiatement',
-    color: '#EF4444',
-    emoji: '🔥'
-  },
-  { 
-    id: 2, 
-    label: 'Important', 
-    description: 'À planifier',
-    color: '#3B82F6',
-    emoji: '🎯'
-  },
-  { 
-    id: 3, 
-    label: 'Urgent', 
-    description: 'À déléguer',
-    color: '#F59E0B',
-    emoji: '⚡'
-  },
-  { 
-    id: 4, 
-    label: 'Ni urgent ni important', 
-    description: 'À éliminer',
-    color: '#9CA3AF',
-    emoji: '📦'
-  },
+  { id: 1, label: 'Urgent & Important', description: 'À faire immédiatement', color: '#EF4444', emoji: '🔥' },
+  { id: 2, label: 'Important', description: 'À planifier', color: '#3B82F6', emoji: '🎯' },
+  { id: 3, label: 'Urgent', description: 'À déléguer', color: '#F59E0B', emoji: '⚡' },
+  { id: 4, label: 'Ni urgent ni important', description: 'À éliminer', color: '#9CA3AF', emoji: '📦' },
 ] as const;
 
 // SLEEP
@@ -205,22 +174,22 @@ export interface SleepLog {
   avg_heart_rate: number;
   bedtime: string;
   wakeup_time: string;
-  quality_score: number; // 1-10
+  quality_score: number;
   created_at: string;
   notes?: string;
-
+  slept_alone?: boolean;
 }
 
-// ✅ Ajoute ces exports
+// MOOD LOG
 export interface MoodLog {
   id: string;
   user_id: string;
   datetime: string;
   score_global: number;
   emotions: string[];
-  energy_level: number;
-  stress_level: number;
-  domains: DomainImpact[];
+  energy_level?: number;
+  stress_level?: number;
+  domains?: DomainImpact[];
   weather?: WeatherData | null;
   note?: string;
   created_at: string;
@@ -229,4 +198,110 @@ export interface MoodLog {
 export interface DomainImpact {
   domain: string;
   impact: number;
+}
+
+// ACTIVITY TRACKING
+export type ActivityCategory = 'sport' | 'social' | 'travail' | 'loisirs' | 'sante' | 'custom';
+
+export interface ActivityType {
+  id: string;
+  user_id?: string;
+  name: string;
+  emoji: string;
+  category: ActivityCategory;
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface MoodActivity {
+  id: string;
+  mood_id: string;
+  activity_type_id: string;
+  done: boolean;
+  created_at: string;
+}
+
+export const DEFAULT_ACTIVITIES: Omit<ActivityType, 'id' | 'user_id' | 'created_at'>[] = [
+  { name: 'Sport', emoji: '💪', category: 'sport', is_default: true, is_active: true },
+  { name: 'Marche', emoji: '🚶', category: 'sport', is_default: true, is_active: true },
+  { name: 'Yoga', emoji: '🧘', category: 'sport', is_default: true, is_active: true },
+  { name: 'Famille', emoji: '👨‍👩‍👧', category: 'social', is_default: true, is_active: true },
+  { name: 'Amis', emoji: '👥', category: 'social', is_default: true, is_active: true },
+  { name: 'Couple', emoji: '❤️', category: 'social', is_default: true, is_active: true },
+  { name: 'Sortie', emoji: '🎉', category: 'social', is_default: true, is_active: true },
+  { name: 'Travail', emoji: '💼', category: 'travail', is_default: true, is_active: true },
+  { name: 'Deep Work', emoji: '🧠', category: 'travail', is_default: true, is_active: true },
+  { name: 'Réunions', emoji: '🤝', category: 'travail', is_default: true, is_active: true },
+  { name: 'Méditation', emoji: '🧘', category: 'sante', is_default: true, is_active: true },
+  { name: 'Bien dormi', emoji: '😴', category: 'sante', is_default: true, is_active: true },
+  { name: 'Hydraté', emoji: '💧', category: 'sante', is_default: true, is_active: true },
+  { name: 'Sain', emoji: '🥗', category: 'sante', is_default: true, is_active: true },
+  { name: 'Vitamines', emoji: '💊', category: 'sante', is_default: true, is_active: true },
+  { name: 'Lecture', emoji: '📚', category: 'loisirs', is_default: true, is_active: true },
+  { name: 'Nature', emoji: '🌳', category: 'loisirs', is_default: true, is_active: true },
+  { name: 'Musique', emoji: '🎵', category: 'loisirs', is_default: true, is_active: true },
+  { name: 'Gaming', emoji: '🎮', category: 'loisirs', is_default: true, is_active: true },
+  { name: 'Créatif', emoji: '🎨', category: 'loisirs', is_default: true, is_active: true },
+  { name: 'Séries', emoji: '📺', category: 'loisirs', is_default: true, is_active: true },
+  { name: 'Alcool', emoji: '🍺', category: 'sante', is_default: true, is_active: true },
+  { name: 'Caféine++', emoji: '☕', category: 'sante', is_default: true, is_active: true },
+  { name: 'Malbouffe', emoji: '🍔', category: 'sante', is_default: true, is_active: true },
+  { name: 'Écrans tard', emoji: '📱', category: 'sante', is_default: true, is_active: true },
+];
+
+export const ACTIVITY_CATEGORIES: { type: ActivityCategory; label: string; emoji: string; color: string }[] = [
+  { type: 'sport', label: 'Sport', emoji: '💪', color: '#66BB6A' },
+  { type: 'social', label: 'Social', emoji: '👥', color: '#42A5F5' },
+  { type: 'travail', label: 'Travail', emoji: '💼', color: '#5C6BC0' },
+  { type: 'loisirs', label: 'Loisirs', emoji: '🎨', color: '#AB47BC' },
+  { type: 'sante', label: 'Santé', emoji: '🧘', color: '#9CCC65' },
+  { type: 'custom', label: 'Perso', emoji: '📌', color: '#78909C' },
+];
+
+// FOCUS SESSIONS
+export type SessionType = 'pomodoro' | 'short_break' | 'long_break';
+
+export interface FocusSession {
+  id: string;
+  user_id: string;
+  task_id?: string;
+  start_time: string;
+  end_time?: string;
+  duration_minutes: number;
+  session_type: SessionType;
+  completed: boolean;
+  notes?: string;
+  created_at: string;
+}
+
+// WATER TRACKING
+export interface WaterLog {
+  id: string;
+  user_id: string;
+  date: string;
+  amount_ml: number;
+  logged_at: string;
+  created_at: string;
+}
+
+export interface WaterGoal {
+  id: string;
+  user_id: string;
+  daily_goal_ml: number;
+  updated_at: string;
+}
+
+// CALENDAR EVENT
+export interface CalendarEvent {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time?: string;
+  all_day: boolean;
+  color?: string;
+  task_id?: string;
+  created_at: string;
 }

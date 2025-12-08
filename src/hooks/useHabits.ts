@@ -78,16 +78,17 @@ export function useHabits() {
     },
   });
 
-  // Récupérer les logs d'habitudes (60 derniers jours au lieu de 30)
+  // Récupérer les logs d'habitudes (année complète pour statistiques annuelles)
   const { data: habitLogs = [] } = useQuery({
     queryKey: ['habitLogs', user?.id],
     queryFn: async () => {
-      const sixtyDaysAgo = startOfDay(subDays(new Date(), 60)).toISOString().split('T')[0];
-      
+      // Charger depuis le 1er janvier de l'année en cours
+      const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+
       const { data, error } = await supabase
         .from('habit_logs')
         .select('*')
-        .gte('date', sixtyDaysAgo)
+        .gte('date', startOfYear)
         .order('date', { ascending: false });
 
       if (error) throw error;

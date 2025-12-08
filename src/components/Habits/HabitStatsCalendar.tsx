@@ -10,7 +10,8 @@ import { HABIT_CATEGORIES } from '@/types';
 export function HabitStatsCalendar() {
   const { habits, habitLogs } = useHabits();
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
-  const [period, setPeriod] = useState<7 | 30>(30);
+  const [period, setPeriod] = useState<7 | 30 | 90 | 'year'>(30);
+  const [showAverage, setShowAverage] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // Filtre les habitudes qui ont au moins 1 log
@@ -30,10 +31,20 @@ export function HabitStatsCalendar() {
     return habitLogs.filter((log) => log.habit_id === activeHabitId);
   }, [habitLogs, activeHabitId]);
 
-  // Stats pour la période sélectionnée (7j ou 30j)
+  // Stats pour la période sélectionnée (7j, 30j, 90j ou année)
   const periodStats = useMemo(() => {
     const today = startOfDay(new Date());
-    const startDate = subDays(today, period);
+    let startDate: Date;
+    let daysInPeriod: number;
+
+    if (period === 'year') {
+      // Du 1er janvier à aujourd'hui
+      startDate = new Date(today.getFullYear(), 0, 1);
+      daysInPeriod = Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    } else {
+      startDate = subDays(today, period);
+      daysInPeriod = period;
+    }
 
     const logsInPeriod = selectedHabitLogs.filter((log) => {
       const logDate = startOfDay(new Date(log.date));
@@ -45,7 +56,12 @@ export function HabitStatsCalendar() {
       ? logsInPeriod.reduce((sum, log) => sum + (log.quantity || 0), 0)
       : 0;
 
-    return { totalCount, totalQuantity };
+    // Calcul de la moyenne par jour
+    const averageQuantity = selectedHabit?.quantifiable && daysInPeriod > 0
+      ? totalQuantity / daysInPeriod
+      : 0;
+
+    return { totalCount, totalQuantity, averageQuantity, daysInPeriod };
   }, [selectedHabitLogs, period, selectedHabit]);
 
   // Données du calendrier pour le mois sélectionné
@@ -112,9 +128,9 @@ export function HabitStatsCalendar() {
         </div>
 
         {/* Sélecteur de période */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Période :</span>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setPeriod(7)}
@@ -137,13 +153,66 @@ export function HabitStatsCalendar() {
             >
               30j
             </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setPeriod(90)}
+              className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+                period === 90
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+              }`}
+            >
+              90j
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setPeriod('year')}
+              className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+                period === 'year'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Année
+            </motion.button>
           </div>
         </div>
+
+        {/* Toggle Total/Moyenne pour habitudes quantifiables */}
+        {selectedHabit?.quantifiable && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Affichage :</span>
+            <div className="flex gap-2">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowAverage(false)}
+                className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+                  !showAverage
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Total
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowAverage(true)}
+                className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+                  showAverage
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Moyenne
+              </motion.button>
+            </div>
+          </div>
+        )}
 
         {/* Stats de la période */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={`${activeHabitId}-${period}`}
+            key={`${activeHabitId}-${period}-${showAverage}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -171,10 +240,12 @@ export function HabitStatsCalendar() {
                   transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
                   className="text-lg md:text-xl font-bold text-green-600"
                 >
-                  {periodStats.totalQuantity}
+                  {showAverage
+                    ? periodStats.averageQuantity.toFixed(1)
+                    : periodStats.totalQuantity}
                 </motion.div>
                 <div className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">
-                  {selectedHabit.unit || 'unités'}
+                  {selectedHabit.unit || 'unités'}{showAverage ? '/jour' : ''}
                 </div>
               </div>
             )}
