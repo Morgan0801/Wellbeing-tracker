@@ -52,14 +52,14 @@ export function PerformanceHeader() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-gradient-to-r from-purple-500 via-indigo-600 to-blue-600 rounded-xl p-4 md:p-8 text-white"
+      className="bg-gradient-to-r from-purple-500 via-indigo-600 to-blue-600 rounded-xl p-3 md:p-4 text-white"
     >
       {/* Titre et date */}
       <motion.h2
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="text-xl md:text-3xl font-bold mb-1 md:mb-2"
+        className="text-lg md:text-xl font-bold mb-1"
       >
         Dashboard 🚀
       </motion.h2>
@@ -67,21 +67,21 @@ export function PerformanceHeader() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="text-xs md:text-base text-blue-100 mb-4 md:mb-6"
+        className="text-xs text-blue-100 mb-3"
       >
         {formatDate(new Date(), 'EEEE d MMMM yyyy')}
       </motion.p>
 
       {/* Indicateurs du jour */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
         {/* Tâches à faire */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}
-          className="bg-white/10 backdrop-blur-sm rounded-lg p-3 md:p-4 md:col-span-2"
+          className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-3 md:col-span-2"
         >
-          <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3">
+          <div className="flex items-center gap-1 md:gap-2 mb-1.5 md:mb-2">
             <AlertCircle className="w-3 h-3 md:w-4 md:h-4 text-orange-300" />
             <span className="text-[10px] md:text-xs text-blue-100 font-medium">À faire aujourd'hui</span>
             <span className="ml-auto text-xs md:text-sm font-bold">{todayTasks.length}</span>
@@ -142,14 +142,14 @@ export function PerformanceHeader() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5 }}
-            className="bg-white/10 backdrop-blur-sm rounded-lg p-3 md:p-4"
+            className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-3"
           >
-            <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
+            <div className="flex items-center gap-1 md:gap-2 mb-1">
               <CheckSquare className="w-3 h-3 md:w-4 md:h-4 text-green-300" />
               <span className="text-[10px] md:text-xs text-blue-100">Complétées</span>
             </div>
-            <div className="text-2xl md:text-4xl font-bold">{completedTodayTasks}</div>
-            <p className="text-[8px] md:text-[10px] text-blue-100 mt-1 md:mt-2">
+            <div className="text-xl md:text-2xl font-bold">{completedTodayTasks}</div>
+            <p className="text-[8px] md:text-[10px] text-blue-100 mt-0.5">
               tâche{completedTodayTasks > 1 ? 's' : ''} terminée{completedTodayTasks > 1 ? 's' : ''}
             </p>
           </motion.div>
@@ -159,14 +159,14 @@ export function PerformanceHeader() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.6 }}
-            className="bg-white/10 backdrop-blur-sm rounded-lg p-3 md:p-4"
+            className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-3"
           >
-            <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
+            <div className="flex items-center gap-1 md:gap-2 mb-1">
               <Clock className="w-3 h-3 md:w-4 md:h-4 text-green-300" />
               <span className="text-[10px] md:text-xs text-blue-100">Habitudes</span>
             </div>
-            <div className="text-2xl md:text-4xl font-bold">{habitsCompleted}/{totalHabits}</div>
-            <p className="text-[8px] md:text-[10px] text-blue-100 mt-1 md:mt-2">
+            <div className="text-xl md:text-2xl font-bold">{habitsCompleted}/{totalHabits}</div>
+            <p className="text-[8px] md:text-[10px] text-blue-100 mt-0.5">
               {habitsPercent}% complétées
             </p>
           </motion.div>

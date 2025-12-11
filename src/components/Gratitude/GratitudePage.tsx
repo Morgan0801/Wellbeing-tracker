@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Plus, Heart, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, Heart, Sparkles, Flame, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useGratitude } from '@/hooks/useGratitude';
 import { formatDate } from '@/lib/utils';
 import { GratitudeModal } from './GratitudeModal';
+import { staggerContainer, staggerItem } from '@/lib/animations';
 
 export function GratitudePage() {
   const { entries, loading } = useGratitude();
@@ -13,24 +15,24 @@ export function GratitudePage() {
   // Calculer la série actuelle
   const currentStreak = () => {
     if (entries.length === 0) return 0;
-    
+
     let streak = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     for (const entry of entries) {
       const entryDate = new Date(entry.date);
       entryDate.setHours(0, 0, 0, 0);
-      
+
       const daysDiff = Math.floor((today.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       if (daysDiff === streak) {
         streak++;
       } else {
         break;
       }
     }
-    
+
     return streak;
   };
 
@@ -38,188 +40,239 @@ export function GratitudePage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
-          <p className="text-gray-500">Chargement...</p>
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full border-2 border-gratitude border-t-transparent animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 pb-24 md:pb-4 space-y-6">
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="container mx-auto p-3 md:p-4 lg:p-5 pb-20 md:pb-6 space-y-3"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Heart className="w-6 h-6 text-pink-500" />
-            Journal de Gratitude
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Cultivez la gratitude au quotidien
-          </p>
+      <motion.div
+        variants={staggerItem}
+        className="relative overflow-hidden rounded-xl bg-gradient-to-br from-gratitude via-gratitude to-gratitude-light p-3 md:p-4 text-white shadow-soft-xl"
+      >
+        {/* Décorations */}
+        <div className="absolute top-4 right-8 text-white/20">
+          <Heart className="w-8 h-8 fill-current" />
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nouvelle entrée
-        </Button>
-      </div>
+        <div className="absolute bottom-6 right-1/4 text-white/10">
+          <Sparkles className="w-12 h-12" />
+        </div>
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <Heart className="w-5 h-5 text-white/80" />
+            <span className="text-sm font-medium text-white/80">Bien-être mental</span>
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-display font-bold mb-1">
+                Journal de Gratitude
+              </h1>
+              <p className="text-sm text-white/80">
+                Cultivez la gratitude au quotidien
+              </p>
+            </div>
+
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-white text-gratitude hover:bg-white/90 shadow-soft-lg hover:shadow-soft-xl hover:-translate-y-0.5 transition-all"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nouvelle entrée
+            </Button>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-pink-200 dark:border-pink-800 bg-pink-50 dark:bg-pink-900/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-600 font-normal">
-              Total d'entrées
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-pink-600">{entries.length}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              Moments de gratitude
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-600 font-normal">
-              Série actuelle
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-600">🔥 {streak}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              Jour{streak > 1 ? 's' : ''} consécutif{streak > 1 ? 's' : ''}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-600 font-normal">
-              Cette semaine
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-purple-600">
-              {entries.filter((e) => {
-                const entryDate = new Date(e.date);
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                return entryDate >= weekAgo;
-              }).length}
+      <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card hover className="bg-gradient-to-br from-gratitude-light to-gratitude-light/30 dark:from-gratitude/15 dark:to-gratitude/5 border-0">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-gratitude/10">
+                <Heart className="w-6 h-6 text-gratitude" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Total d'entrées</p>
+                <p className="text-3xl font-display font-bold text-gratitude">{entries.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">Moments de gratitude</p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              7 derniers jours
-            </p>
           </CardContent>
         </Card>
-      </div>
+
+        <Card hover className="bg-gradient-to-br from-focus-light to-focus-light/30 dark:from-focus/15 dark:to-focus/5 border-0">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-focus/10">
+                <Flame className="w-6 h-6 text-focus" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Série actuelle</p>
+                <p className="text-3xl font-display font-bold text-focus">{streak}</p>
+                <p className="text-xs text-muted-foreground mt-1">Jour{streak > 1 ? 's' : ''} consécutif{streak > 1 ? 's' : ''}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card hover className="bg-gradient-to-br from-sleep-light to-sleep-light/30 dark:from-sleep/15 dark:to-sleep/5 border-0">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-sleep/10">
+                <Calendar className="w-6 h-6 text-sleep" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Cette semaine</p>
+                <p className="text-3xl font-display font-bold text-sleep">
+                  {entries.filter((e) => {
+                    const entryDate = new Date(e.date);
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    return entryDate >= weekAgo;
+                  }).length}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">7 derniers jours</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Citation inspirante */}
-      <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-        <CardContent className="py-6">
-          <Sparkles className="w-6 h-6 text-blue-500 mb-3 mx-auto" />
-          <p className="text-center text-sm italic text-gray-700 dark:text-gray-300">
-            "La gratitude transforme ce que nous avons en assez, et plus encore."
-          </p>
-          <p className="text-center text-xs text-gray-500 mt-2">— Melody Beattie</p>
-        </CardContent>
-      </Card>
+      <motion.div variants={staggerItem}>
+        <Card variant="glass" className="border-primary/10">
+          <CardContent className="py-8">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-6 h-6 text-primary" />
+            </div>
+            <p className="text-center text-sm italic text-foreground max-w-lg mx-auto">
+              "La gratitude transforme ce que nous avons en assez, et plus encore."
+            </p>
+            <p className="text-center text-xs text-muted-foreground mt-3">— Melody Beattie</p>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Liste des entrées */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Mes moments de gratitude</h2>
+      <motion.div variants={staggerItem}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-lg bg-gratitude/10">
+            <Heart className="w-5 h-5 text-gratitude" />
+          </div>
+          <h2 className="text-lg font-display font-bold">Mes moments de gratitude</h2>
+        </div>
+
         {entries.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center">
-              <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm mb-4">
-                Aucune entrée pour le moment.
+          <Card variant="elevated" className="border-dashed border-2">
+            <CardContent className="py-16 text-center">
+              <div className="w-20 h-20 rounded-full bg-gratitude/10 flex items-center justify-center mx-auto mb-6">
+                <Sparkles className="w-10 h-10 text-gratitude" />
+              </div>
+              <h3 className="text-xl font-display font-bold mb-2">Aucune entrée pour le moment</h3>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                Commencez votre journal de gratitude pour cultiver le bien-être au quotidien.
               </p>
-              <Button onClick={() => setIsAddModalOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
+              <Button onClick={() => setIsAddModalOpen(true)} variant="glow" size="lg" className="bg-gradient-to-r from-gratitude to-mood">
                 Commencer mon journal
               </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            {entries.map((entry) => (
-              <Card key={entry.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">
-                      {formatDate(new Date(entry.date), 'EEEE d MMMM yyyy')}
-                    </CardTitle>
-                    {entry.mood_emoji && (
-                      <span className="text-2xl">{entry.mood_emoji}</span>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2">
-                      <span className="text-pink-500 mt-0.5">1.</span>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                        {entry.entry_1}
-                      </p>
+            {entries.map((entry, index) => (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card hover variant="elevated">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-display">
+                        {formatDate(new Date(entry.date), 'EEEE d MMMM yyyy')}
+                      </CardTitle>
+                      {entry.mood_emoji && (
+                        <span className="text-2xl">{entry.mood_emoji}</span>
+                      )}
                     </div>
-                    {entry.entry_2 && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-pink-500 mt-0.5">2.</span>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                          {entry.entry_2}
-                        </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-gratitude/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-xs font-bold text-gratitude">1</span>
+                        </div>
+                        <p className="text-sm text-foreground flex-1">{entry.entry_1}</p>
                       </div>
-                    )}
-                    {entry.entry_3 && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-pink-500 mt-0.5">3.</span>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                          {entry.entry_3}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      {entry.entry_2 && (
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full bg-gratitude/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-xs font-bold text-gratitude">2</span>
+                          </div>
+                          <p className="text-sm text-foreground flex-1">{entry.entry_2}</p>
+                        </div>
+                      )}
+                      {entry.entry_3 && (
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full bg-gratitude/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-xs font-bold text-gratitude">3</span>
+                          </div>
+                          <p className="text-sm text-foreground flex-1">{entry.entry_3}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Conseils */}
-      <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            💡 Conseils pour cultiver la gratitude
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-            <li className="flex items-start gap-2">
-              <span className="text-green-500">•</span>
-              <span>Écrivez chaque jour, de préférence le matin ou le soir</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500">•</span>
-              <span>Soyez spécifique : détaillez pourquoi vous êtes reconnaissant</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500">•</span>
-              <span>Variez vos gratitudes : grandes et petites choses comptent</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500">•</span>
-              <span>Relisez vos anciennes entrées lors de moments difficiles</span>
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
-	        <GratitudeModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
-    </div>
+      <motion.div variants={staggerItem}>
+        <Card variant="glass" className="border-vitality/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-vitality" />
+              Conseils pour cultiver la gratitude
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { text: "Écrivez chaque jour, de préférence le matin ou le soir", icon: "📝" },
+                { text: "Soyez spécifique : détaillez pourquoi vous êtes reconnaissant", icon: "🎯" },
+                { text: "Variez vos gratitudes : grandes et petites choses comptent", icon: "✨" },
+                { text: "Relisez vos anciennes entrées lors de moments difficiles", icon: "💪" },
+              ].map((tip, index) => (
+                <div key={index} className="flex items-start gap-3 p-2 rounded-lg bg-muted/30">
+                  <span className="text-xl">{tip.icon}</span>
+                  <span className="text-sm text-foreground">{tip.text}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <GratitudeModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
+    </motion.div>
   );
 }

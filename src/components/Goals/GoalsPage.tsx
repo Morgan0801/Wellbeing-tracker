@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Plus, Target, CheckCircle2, Circle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus, Target, CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { GoalModal } from './GoalModal';
 import { useGoals } from '@/hooks/useGoals';
 import { GOAL_CATEGORIES } from '@/types/phase4-types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
+import { staggerContainer, staggerItem } from '@/lib/animations';
 
 export function GoalsPage() {
   const { goals, loading, toggleGoal } = useGoals();
@@ -21,166 +23,213 @@ export function GoalsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-500">Chargement...</p>
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full border-2 border-vitality border-t-transparent animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 pb-24 md:pb-4 space-y-6">
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="container mx-auto p-3 md:p-4 lg:p-5 pb-20 md:pb-6 space-y-3"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div variants={staggerItem} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Target className="w-6 h-6 text-purple-500" />
+          <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-vitality/10">
+              <Target className="w-6 h-6 text-vitality" />
+            </div>
             Mes Objectifs
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {activeGoals.length} objectif{activeGoals.length > 1 ? 's' : ''} en cours
           </p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button onClick={() => setIsAddModalOpen(true)} variant="glow" className="gap-2">
+          <Plus className="w-4 h-4" />
           Nouvel objectif
         </Button>
-      </div>
+      </motion.div>
 
       {/* Filtres par catégorie */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        <Button
-          variant={selectedCategory === null ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedCategory(null)}
-        >
-          Tous
-        </Button>
-        {GOAL_CATEGORIES.map((cat) => (
-          <Button
-            key={cat.type}
-            variant={selectedCategory === cat.type ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedCategory(cat.type)}
-          >
-            {cat.emoji} {cat.label}
-          </Button>
-        ))}
-      </div>
+      <motion.div variants={staggerItem}>
+        <Card variant="glass" className="border-vitality/10">
+          <CardContent className="p-3">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <Button
+                variant={selectedCategory === null ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setSelectedCategory(null)}
+                className={cn(selectedCategory === null && "bg-vitality text-white hover:bg-vitality/90")}
+              >
+                Tous
+              </Button>
+              {GOAL_CATEGORIES.map((cat) => (
+                <Button
+                  key={cat.type}
+                  variant={selectedCategory === cat.type ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedCategory(cat.type)}
+                  className={cn(
+                    "whitespace-nowrap",
+                    selectedCategory === cat.type && "bg-vitality text-white hover:bg-vitality/90"
+                  )}
+                >
+                  {cat.emoji} {cat.label}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Objectifs actifs */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">En cours</h2>
+      <motion.div variants={staggerItem}>
+        <h2 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-vitality" />
+          En cours
+        </h2>
         {filteredGoals.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center">
-              <Target className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">
-                {selectedCategory
-                  ? 'Aucun objectif dans cette catégorie'
-                  : 'Aucun objectif. Créez-en un pour commencer !'}
+          <Card variant="elevated" className="border-dashed border-2">
+            <CardContent className="py-16 text-center">
+              <div className="w-20 h-20 rounded-full bg-vitality/10 flex items-center justify-center mx-auto mb-6">
+                <Sparkles className="w-10 h-10 text-vitality" />
+              </div>
+              <h3 className="text-xl font-display font-bold mb-2">
+                {selectedCategory ? 'Aucun objectif dans cette catégorie' : 'Aucun objectif'}
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                Créez votre premier objectif pour commencer à suivre vos ambitions !
               </p>
+              <Button onClick={() => setIsAddModalOpen(true)} variant="glow" size="lg">
+                Créer un objectif
+              </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredGoals.map((goal) => {
+            {filteredGoals.map((goal, index) => {
               const category = GOAL_CATEGORIES.find((c) => c.type === goal.category);
               return (
-                <Card key={goal.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg">{category?.emoji}</span>
-                          <span
-                            className="text-xs px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: `${category?.color}20`, color: category?.color }}
-                          >
-                            {category?.label}
-                          </span>
+                <motion.div
+                  key={goal.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card hover variant="elevated" className="h-full">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xl">{category?.emoji}</span>
+                            <span
+                              className="text-xs px-2.5 py-1 rounded-full font-medium"
+                              style={{ backgroundColor: `${category?.color}15`, color: category?.color }}
+                            >
+                              {category?.label}
+                            </span>
+                          </div>
+                          <CardTitle className="text-base font-display">{goal.title}</CardTitle>
                         </div>
-                        <CardTitle className="text-base">{goal.title}</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleGoal(goal.id)}
+                          className="hover:bg-vitality/10"
+                        >
+                          <Circle className="w-5 h-5 text-muted-foreground hover:text-vitality transition-colors" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleGoal(goal.id)}
-                      >
-                        <Circle className="w-5 h-5 text-gray-400" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {goal.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        {goal.description}
-                      </p>
-                    )}
-                    {goal.target_date && (
-                      <div className="text-xs text-gray-500">
-                        🎯 Échéance : {formatDate(new Date(goal.target_date), 'd MMM yyyy')}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {goal.description && (
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          {goal.description}
+                        </p>
+                      )}
+                      {goal.target_date && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs text-muted-foreground">
+                          <Target className="w-3 h-3" />
+                          Échéance : {formatDate(new Date(goal.target_date), 'd MMM yyyy')}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Objectifs complétés */}
       {completedGoals.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold mb-3 text-green-600">
-            ✅ Complétés ({completedGoals.length})
+        <motion.div variants={staggerItem}>
+          <h2 className="text-lg font-display font-bold mb-4 flex items-center gap-2 text-vitality">
+            <CheckCircle2 className="w-5 h-5" />
+            Complétés ({completedGoals.length})
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {completedGoals.map((goal) => {
+            {completedGoals.map((goal, index) => {
               const category = GOAL_CATEGORIES.find((c) => c.type === goal.category);
               return (
-                <Card key={goal.id} className="opacity-60 hover:opacity-100 transition-opacity">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg">{category?.emoji}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                            {category?.label}
-                          </span>
+                <motion.div
+                  key={goal.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className="h-full opacity-70 hover:opacity-100 transition-opacity bg-vitality/5 border-vitality/20">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xl">{category?.emoji}</span>
+                            <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-vitality/10 text-vitality">
+                              {category?.label}
+                            </span>
+                          </div>
+                          <CardTitle className="text-base font-display line-through text-muted-foreground">
+                            {goal.title}
+                          </CardTitle>
                         </div>
-                        <CardTitle className="text-base line-through">{goal.title}</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleGoal(goal.id)}
+                          className="text-vitality hover:text-vitality hover:bg-vitality/10"
+                        >
+                          <CheckCircle2 className="w-5 h-5" />
+                        </Button>
                       </div>
-                      {/* ✅ CHANGEMENT ICI : Bouton cliquable pour décocher */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleGoal(goal.id)}
-                        className="text-green-500 hover:text-green-700"
-                      >
-                        <CheckCircle2 className="w-5 h-5" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {goal.completed_at && (
-                      <div className="text-xs text-gray-500">
-                        Complété le {formatDate(new Date(goal.completed_at), 'd MMM yyyy')}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {goal.completed_at && (
+                        <div className="text-xs text-muted-foreground">
+                          Complété le {formatDate(new Date(goal.completed_at), 'd MMM yyyy')}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Modal */}
       <GoalModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
-    </div>
+    </motion.div>
   );
 }

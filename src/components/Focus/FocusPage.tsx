@@ -1,158 +1,197 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, RotateCcw, Brain, Timer } from 'lucide-react';
+import { Timer, Plus, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useFocus } from '@/hooks/useFocus';
-import { cn } from '@/lib/utils';
+import { PomodoroTimer } from './PomodoroTimer';
+import { SessionTagSelector } from './SessionTagSelector';
+import { FocusStatistics } from './FocusStatistics';
+import { ManualEntryModal } from './ManualEntryModal';
+import { FocusHistory } from './FocusHistory';
+import { useFocusEnhanced } from '@/hooks/useFocusEnhanced';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-type TimerMode = 'pomodoro' | 'short_break' | 'long_break';
-
-const TIMER_CONFIGS = {
-    pomodoro: { duration: 25 * 60, label: 'Focus', color: 'from-rose-500 to-orange-500', emoji: '🎯' },
-    short_break: { duration: 5 * 60, label: 'Pause courte', color: 'from-emerald-500 to-teal-500', emoji: '☕' },
-    long_break: { duration: 15 * 60, label: 'Pause longue', color: 'from-blue-500 to-indigo-500', emoji: '🧘' },
-};
+import { staggerContainer, staggerItem } from '@/lib/animations';
 
 export function FocusPage() {
-    const [mode, setMode] = useState<TimerMode>('pomodoro');
-    const [timeRemaining, setTimeRemaining] = useState(TIMER_CONFIGS[mode].duration);
-    const [isRunning, setIsRunning] = useState(false);
-    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
-    const { startSession, completeSession, todayStats, weekStats } = useFocus();
+  const { todayStats, weekStats, isLoading } = useFocusEnhanced();
 
-    const config = TIMER_CONFIGS[mode];
-    const progress = ((config.duration - timeRemaining) / config.duration) * 100;
-
-    // Timer logic
-    useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
-        if (isRunning && timeRemaining > 0) {
-            interval = setInterval(() => setTimeRemaining((prev) => prev - 1), 1000);
-        } else if (timeRemaining === 0 && isRunning) {
-            setIsRunning(false);
-            if (currentSessionId) {
-                completeSession.mutate({ id: currentSessionId, completed: true });
-                setCurrentSessionId(null);
-            }
-            try { new Audio('/notification.mp3').play().catch(() => { }); } catch { }
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('⏰ Session terminée !', { body: mode === 'pomodoro' ? 'Bravo ! Prends une pause.' : 'C\'est reparti !', icon: '/favicon.ico' });
-            }
-        }
-        return () => { if (interval) clearInterval(interval); };
-    }, [isRunning, timeRemaining, currentSessionId, mode, completeSession]);
-
-    const handleModeChange = useCallback((newMode: TimerMode) => {
-        if (isRunning && currentSessionId) completeSession.mutate({ id: currentSessionId, completed: false });
-        setMode(newMode);
-        setTimeRemaining(TIMER_CONFIGS[newMode].duration);
-        setIsRunning(false);
-        setCurrentSessionId(null);
-    }, [isRunning, currentSessionId, completeSession]);
-
-    const handleToggle = async () => {
-        if (!isRunning && !currentSessionId) {
-            const session = await startSession.mutateAsync({ durationMinutes: Math.floor(config.duration / 60), sessionType: mode });
-            setCurrentSessionId(session.id);
-        }
-        setIsRunning(!isRunning);
-    };
-
-    const handleReset = () => {
-        if (currentSessionId) completeSession.mutate({ id: currentSessionId, completed: false });
-        setTimeRemaining(config.duration);
-        setIsRunning(false);
-        setCurrentSessionId(null);
-    };
-
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    return (
-        <div className="container mx-auto p-3 max-w-5xl space-y-4">
-            {/* Header Compact */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn('bg-gradient-to-r rounded-xl p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4', config.color)}>
-                <div>
-                    <h2 className="text-lg font-bold flex items-center gap-2"><Timer className="w-5 h-5" /> Mode Focus {config.emoji}</h2>
-                    <p className="text-xs opacity-90">{format(new Date(), 'EEEE d MMMM', { locale: fr })}</p>
-                </div>
-                <div className="flex gap-2 flex-wrap sm:justify-end">
-                    {(Object.keys(TIMER_CONFIGS) as TimerMode[]).map((m) => (
-                        <button key={m} onClick={() => handleModeChange(m)} className={cn("px-3 py-1.5 rounded-lg text-xs uppercase font-bold transition-all border border-white/20", mode === m ? "bg-white/30 text-white" : "hover:bg-white/10 text-white/70")}>
-                            {TIMER_CONFIGS[m].label}
-                        </button>
-                    ))}
-                </div>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Timer Column */}
-                <Card className="flex flex-col items-center justify-center py-6 shadow-sm">
-                    <div className="relative w-48 h-48 lg:w-56 lg:h-56">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="50%" cy="50%" r="45%" fill="transparent" stroke="currentColor" strokeWidth="6" className="text-slate-100 dark:text-slate-800" />
-                            <motion.circle cx="50%" cy="50%" r="45%" fill="transparent" stroke="currentColor" strokeWidth="6" strokeDasharray={`${2 * Math.PI * 45}%`} strokeDashoffset={`${2 * Math.PI * 45 * (1 - progress / 100)}%`} strokeLinecap="round"
-                                className={cn(mode === 'pomodoro' && 'text-rose-500', mode === 'short_break' && 'text-emerald-500', mode === 'long_break' && 'text-blue-500')}
-                                initial={false} animate={{ strokeDashoffset: `${2 * Math.PI * 45 * (1 - progress / 100)}%` }} transition={{ duration: 0.5 }}
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <motion.span key={timeRemaining} initial={{ scale: 1.1, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-4xl lg:text-5xl font-mono font-bold tracking-tighter">
-                                {formatTime(timeRemaining)}
-                            </motion.span>
-                            <span className="text-xs text-muted-foreground mt-1 uppercase tracking-widest">{isRunning ? 'En cours' : 'Pause'}</span>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 mt-6">
-                        <Button size="icon" variant="outline" onClick={handleReset} disabled={!currentSessionId && timeRemaining === config.duration} className="h-10 w-10 rounded-full">
-                            <RotateCcw className="w-4 h-4" />
-                        </Button>
-                        <motion.div whileTap={{ scale: 0.95 }}>
-                            <Button className={cn('h-10 px-8 rounded-full font-bold shadow-lg', isRunning ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gradient-to-r ' + config.color)} onClick={handleToggle}>
-                                {isRunning ? <><Pause className="w-4 h-4 mr-2" /> Pause</> : <><Play className="w-4 h-4 mr-2" /> Start</>}
-                            </Button>
-                        </motion.div>
-                    </div>
-                </Card>
-
-                {/* Right Column: Stats & Tips */}
-                <div className="space-y-4 flex flex-col h-full">
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-3 flex-1">
-                        {[
-                            { val: todayStats.sessionsCompleted, label: 'Sessions Auj', color: 'text-rose-500' },
-                            { val: todayStats.minutesFocused, label: 'Minutes Auj', color: 'text-emerald-500' },
-                            { val: weekStats.sessionsCompleted, label: 'Sessions Sem', color: 'text-blue-500' },
-                            { val: `${Math.round(weekStats.minutesFocused / 60)}h`, label: 'Heures Sem', color: 'text-purple-500' }
-                        ].map((s, i) => (
-                            <Card key={i} className="shadow-sm border-slate-100 dark:border-slate-800 flex items-center justify-center">
-                                <CardContent className="p-4 text-center">
-                                    <div className={cn("text-2xl font-bold", s.color)}>{s.val}</div>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{s.label}</p>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-
-                    {/* Tip Compact */}
-                    <Card className="bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/50 shadow-none">
-                        <CardContent className="p-4 flex items-start gap-3">
-                            <Brain className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                            <p className="text-sm text-amber-900 dark:text-amber-300 leading-relaxed">
-                                <span className="font-bold">Astuce :</span> Après 4 sessions, prends une pause de 20min. Ton cerveau assimile l'information pendant le repos. 🧠
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+  return (
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="container mx-auto p-3 md:p-4 lg:p-5 pb-20 md:pb-6 max-w-7xl space-y-4"
+    >
+      {/* Header */}
+      <motion.div
+        variants={staggerItem}
+        className="relative overflow-hidden rounded-2xl p-6 text-white shadow-soft-xl bg-gradient-to-br from-focus to-focus-light"
+      >
+        <div className="absolute top-4 right-8 text-white/20">
+          <Timer className="w-12 h-12" />
         </div>
-    );
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <Timer className="w-5 h-5 text-white/80" />
+            <span className="text-sm font-medium text-white/80">Mode Focus</span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-display font-bold mb-1">
+                Timer Pomodoro
+              </h2>
+              <p className="text-sm text-white/80">
+                {format(new Date(), 'EEEE d MMMM', { locale: fr })}
+              </p>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowManualEntry(true)}
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter manuellement
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowStats(!showStats)}
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                {showStats ? 'Masquer' : 'Afficher'} stats
+                {showStats ? (
+                  <ChevronUp className="w-4 h-4 ml-1" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left Column: Timer + Tag Selector */}
+        <motion.div variants={staggerItem} className="lg:col-span-2 space-y-4">
+          <PomodoroTimer
+            selectedTag={selectedTag}
+            onSessionComplete={() => {
+              // Session complétée avec succès
+            }}
+          />
+
+          <SessionTagSelector value={selectedTag} onChange={setSelectedTag} />
+        </motion.div>
+
+        {/* Right Column: Today's Stats */}
+        <motion.div variants={staggerItem} className="space-y-4">
+          {/* Stats Cards */}
+          <Card variant="elevated">
+            <CardContent className="p-5">
+              <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wide">
+                Aujourd'hui
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Sessions</span>
+                  <span className="text-2xl font-display font-bold text-focus">
+                    {isLoading ? '...' : todayStats.totalSessions}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Minutes</span>
+                  <span className="text-2xl font-display font-bold text-vitality">
+                    {isLoading ? '...' : todayStats.totalMinutes}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Week Stats */}
+          <Card variant="elevated">
+            <CardContent className="p-5">
+              <h3 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wide">
+                Cette semaine
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Sessions</span>
+                  <span className="text-2xl font-display font-bold text-sleep">
+                    {isLoading ? '...' : weekStats.totalSessions}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Heures</span>
+                  <span className="text-2xl font-display font-bold text-gratitude">
+                    {isLoading
+                      ? '...'
+                      : `${Math.round(weekStats.totalMinutes / 60)}h`}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tip Card */}
+          <Card variant="glass" className="border-productivity/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-productivity/10 shrink-0">
+                  <Timer className="w-5 h-5 text-productivity" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-1">
+                    Astuce Pomodoro
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Après 4 sessions, prends une pause de 20 min. Ton cerveau
+                    assimile l'information pendant le repos.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Statistics Section (Collapsible) */}
+      {showStats && (
+        <motion.div
+          variants={staggerItem}
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <FocusStatistics />
+        </motion.div>
+      )}
+
+      {/* History Section */}
+      <motion.div variants={staggerItem}>
+        <FocusHistory limit={10} />
+      </motion.div>
+
+      {/* Manual Entry Modal */}
+      <ManualEntryModal
+        open={showManualEntry}
+        onClose={() => setShowManualEntry(false)}
+      />
+    </motion.div>
+  );
 }

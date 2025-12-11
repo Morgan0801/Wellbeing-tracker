@@ -1,4 +1,6 @@
 import { Home, Heart, CheckSquare, BarChart3, MoreHorizontal } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface BottomNavigationProps {
   activeTab: string;
@@ -7,11 +9,11 @@ interface BottomNavigationProps {
 }
 
 const bottomNavItems = [
-  { id: 'dashboard', icon: Home, label: 'Accueil' },
-  { id: 'mood', icon: Heart, label: 'Humeur' },
-  { id: 'habits', icon: CheckSquare, label: 'Habitudes' },
-  { id: 'insights', icon: BarChart3, label: 'Insights' },
-  { id: 'plus', icon: MoreHorizontal, label: 'Plus' },
+  { id: 'dashboard', icon: Home, label: 'Accueil', color: 'text-primary' },
+  { id: 'mood', icon: Heart, label: 'Humeur', color: 'text-mood' },
+  { id: 'habits', icon: CheckSquare, label: 'Habitudes', color: 'text-vitality' },
+  { id: 'insights', icon: BarChart3, label: 'Insights', color: 'text-productivity' },
+  { id: 'plus', icon: MoreHorizontal, label: 'Plus', color: 'text-muted-foreground' },
 ];
 
 export function BottomNavigation({ activeTab, onTabChange, onPlusClick }: BottomNavigationProps) {
@@ -24,33 +26,62 @@ export function BottomNavigation({ activeTab, onTabChange, onPlusClick }: Bottom
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 safe-area-bottom">
-      <div className="flex items-center justify-around h-14">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+      {/* Glass background */}
+      <div className="absolute inset-0 bg-card/80 backdrop-blur-lg border-t border-border/30" />
+
+      <div className="relative flex items-center justify-around h-16 pb-safe-bottom">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
 
           return (
-            <button
+            <motion.button
               key={item.id}
               onClick={() => handleClick(item.id)}
-              className="flex flex-col items-center justify-center flex-1 h-full relative group"
+              whileTap={{ scale: 0.9 }}
+              className="relative flex flex-col items-center justify-center flex-1 h-full group"
               aria-label={item.label}
             >
-              {/* Icon */}
-              <Icon
-                className={`w-6 h-6 transition-colors ${
-                  isActive
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'
-                }`}
-              />
-
-              {/* Active indicator - petit point sous l'icône */}
+              {/* Active background pill */}
               {isActive && (
-                <div className="absolute bottom-1 w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-x-2 top-1 bottom-1 rounded-2xl bg-primary/10"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
               )}
-            </button>
+
+              {/* Icon container */}
+              <motion.div
+                animate={isActive ? { y: -2 } : { y: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="relative z-10"
+              >
+                <Icon
+                  className={cn(
+                    "w-6 h-6 transition-colors duration-200",
+                    isActive ? item.color : "text-muted-foreground"
+                  )}
+                />
+              </motion.div>
+
+              {/* Label */}
+              <motion.span
+                initial={false}
+                animate={{
+                  opacity: isActive ? 1 : 0.6,
+                  scale: isActive ? 1 : 0.95,
+                }}
+                transition={{ duration: 0.2 }}
+                className={cn(
+                  "text-[10px] font-medium mt-0.5 relative z-10",
+                  isActive ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                {item.label}
+              </motion.span>
+            </motion.button>
           );
         })}
       </div>

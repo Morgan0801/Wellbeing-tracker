@@ -27,3 +27,18 @@ dist-ssr
 .env
 .env.local
 .env.production
+
+# Claude Code settings
+.claude/settings.local.json
+
+# Media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# Screenshots and frames
+*_frame_*.png
+screenshot*.png
+capture*.png

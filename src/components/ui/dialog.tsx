@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface DialogProps {
   open: boolean
@@ -9,18 +10,55 @@ interface DialogProps {
 }
 
 const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
-  if (!open) return null
+  // Fermer avec Escape
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && open) {
+        onOpenChange(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [open, onOpenChange])
+
+  // Empêcher le scroll du body quand ouvert
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [open])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black/50"
-        onClick={() => onOpenChange(false)}
-      />
-      <div className="relative z-50 w-full max-w-lg mx-4">
-        {children}
-      </div>
-    </div>
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          {/* Backdrop avec blur */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-foreground/20 backdrop-blur-sm"
+            onClick={() => onOpenChange(false)}
+          />
+          {/* Dialog Content */}
+          <motion.div
+            initial={{ opacity: 0, y: 100, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 100, scale: 0.95 }}
+            transition={{ type: "spring", damping: 30, stiffness: 400 }}
+            className="relative z-50 w-full sm:max-w-lg sm:mx-4"
+          >
+            {children}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -31,19 +69,30 @@ const DialogContent = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "relative bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 pb-24 md:pb-6 max-h-[90vh] overflow-y-auto",
+      `relative bg-card
+      rounded-t-3xl sm:rounded-3xl
+      shadow-soft-xl
+      p-6 pb-8 sm:pb-6
+      max-h-[90vh] overflow-y-auto
+      border-t sm:border border-border/30`,
       className
     )}
     {...props}
   >
+    {/* Drag handle pour mobile */}
+    <div className="sm:hidden w-12 h-1.5 bg-muted rounded-full mx-auto mb-4" />
+
     {onClose && (
-      <button
+      <motion.button
+        whileHover={{ scale: 1.1, rotate: 90 }}
+        whileTap={{ scale: 0.9 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
         onClick={onClose}
-        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        className="absolute right-4 top-4 p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
       >
         <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </button>
+        <span className="sr-only">Fermer</span>
+      </motion.button>
     )}
     {children}
   </div>
@@ -56,13 +105,27 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left mb-4",
+      "flex flex-col space-y-2 text-center sm:text-left mb-6",
       className
     )}
     {...props}
   />
 )
 DialogHeader.displayName = "DialogHeader"
+
+const DialogFooter = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-6 pt-4 border-t border-border/30",
+      className
+    )}
+    {...props}
+  />
+)
+DialogFooter.displayName = "DialogFooter"
 
 const DialogTitle = React.forwardRef<
   HTMLHeadingElement,
@@ -71,7 +134,7 @@ const DialogTitle = React.forwardRef<
   <h2
     ref={ref}
     className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
+      "font-display text-2xl font-bold tracking-tight text-foreground",
       className
     )}
     {...props}
@@ -85,10 +148,10 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-gray-500 dark:text-gray-400", className)}
+    className={cn("text-sm text-muted-foreground leading-relaxed", className)}
     {...props}
   />
 ))
 DialogDescription.displayName = "DialogDescription"
 
-export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription }
+export { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription }

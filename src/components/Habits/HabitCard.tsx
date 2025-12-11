@@ -102,22 +102,22 @@ export function HabitCard({ habit, selectedDate, onEdit, onViewStats }: HabitCar
     >
       <Card
         className={cn(
-          'p-2 md:p-4 transition-all',
+          'p-2 transition-all',
           hasLogs && 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
         )}
       >
-      <div className="flex items-start justify-between gap-2 md:gap-4">
+      <div className="flex items-start justify-between gap-2">
         {/* Left: Info + Logs */}
-        <div className="flex-1 min-w-0 space-y-1.5 md:space-y-3">
+        <div className="flex-1 min-w-0 space-y-1">
           {/* Titre */}
           <div>
-            <h3 className="text-xs md:text-base font-medium flex items-center gap-1 md:gap-2">
+            <h3 className="text-base font-semibold flex items-center gap-1">
               {habit.name}
-              {hasLogs && <span className="text-green-600 text-xs md:text-base">✓</span>}
+              {hasLogs && <span className="text-green-600 text-sm">✓</span>}
             </h3>
-            <div className="flex flex-wrap gap-1 md:gap-2 mt-0.5 md:mt-1 text-[9px] md:text-xs">
+            <div className="flex flex-wrap gap-1 mt-0.5 text-[9px]">
               <span
-                className="px-1.5 md:px-2 py-0.5 rounded-full"
+                className="px-1.5 py-0.5 rounded-full"
                 style={{
                   backgroundColor: habit.color + '20',
                   color: habit.color,
@@ -126,13 +126,13 @@ export function HabitCard({ habit, selectedDate, onEdit, onViewStats }: HabitCar
                 {frequencyLabel}
               </span>
               {habit.quantifiable && habit.unit && (
-                <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                <span className="px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                   {habit.unit}
                 </span>
               )}
               {streak > 0 && (
-                <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
-                  🔥 {streak} j{streak > 1 ? '' : ''}
+                <span className="px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                  🔥 {streak}j
                 </span>
               )}
             </div>
@@ -149,9 +149,9 @@ export function HabitCard({ habit, selectedDate, onEdit, onViewStats }: HabitCar
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm bg-white dark:bg-gray-800 rounded-md px-2 md:px-3 py-1 md:py-2 border border-green-200 dark:border-green-800"
+                    className="flex items-center gap-1 text-[10px] bg-white dark:bg-gray-800 rounded-md px-2 py-1 border border-green-200 dark:border-green-800"
                   >
-                    <Check className="w-3 h-3 md:w-4 md:h-4 text-green-600 shrink-0" />
+                    <Check className="w-3 h-3 text-green-600 shrink-0" />
                     <span className="flex-1">
                       {habit.quantifiable && log.quantity ? (
                         <span className="font-medium">
@@ -161,7 +161,7 @@ export function HabitCard({ habit, selectedDate, onEdit, onViewStats }: HabitCar
                         <span>Complété</span>
                       )}
                       {logsForDate.length > 1 && (
-                        <span className="ml-1 md:ml-2 text-[9px] md:text-xs text-gray-500">
+                        <span className="ml-1 text-[9px] text-gray-500">
                           #{index + 1}
                         </span>
                       )}
@@ -170,7 +170,7 @@ export function HabitCard({ habit, selectedDate, onEdit, onViewStats }: HabitCar
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => handleDeleteLog(log.id)}
-                      className="text-red-500 hover:text-red-700 p-0.5 md:p-1"
+                      className="text-red-500 hover:text-red-700 p-0.5"
                     >
                       <X className="w-3 h-3" />
                     </motion.button>
@@ -179,7 +179,7 @@ export function HabitCard({ habit, selectedDate, onEdit, onViewStats }: HabitCar
 
               {/* Total si quantifiable */}
               {habit.quantifiable && totalQuantity > 0 && logsForDate.length > 1 && (
-                <div className="text-[10px] md:text-sm font-bold text-green-700 dark:text-green-400 pt-0.5 md:pt-1">
+                <div className="text-[10px] font-bold text-green-700 dark:text-green-400 pt-0.5">
                   Total : {totalQuantity} {habit.unit}
                 </div>
               )}

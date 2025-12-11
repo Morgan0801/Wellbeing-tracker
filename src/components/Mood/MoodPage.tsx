@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Plus } from 'lucide-react';
+import { Heart, Plus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { MoodModal } from './MoodModal';
@@ -9,10 +9,13 @@ import { MoodChart } from './MoodChart';
 import { MoodInsights } from './MoodInsights';
 import { MoodHeatmap } from './MoodHeatmap';
 import { ActivityInsights } from './ActivityInsights';
+import { EnergyInsights } from './EnergyInsights';
+import { AdvancedMoodInsights } from './AdvancedMoodInsights';
 import { useMood } from '@/hooks/useMood';
 import { getMoodEmoji } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { staggerContainer, staggerItem, scaleIn } from '@/lib/animations';
 
 export function MoodPage() {
   const [isMoodModalOpen, setIsMoodModalOpen] = useState(false);
@@ -28,102 +31,117 @@ export function MoodPage() {
     : null;
 
   return (
-    <div className="container mx-auto p-3 md:p-4 pb-20 md:pb-4 space-y-4 md:space-y-6">
-      {/* Header Émotionnel */}
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="container mx-auto p-3 md:p-4 lg:p-5 pb-20 md:pb-6 space-y-3"
+    >
+      {/* Header Émotionnel avec gradient rose/blush */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="bg-gradient-to-r from-pink-500 via-rose-500 to-red-500 rounded-xl p-4 md:p-8 text-white"
+        variants={staggerItem}
+        className="relative overflow-hidden rounded-xl bg-gradient-to-br from-mood via-blush-400 to-mood-light p-3 md:p-4 text-white shadow-soft-xl"
       >
-        <motion.h2
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-xl md:text-3xl font-bold mb-1 md:mb-2"
-        >
-          Mon humeur 💭
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-xs md:text-base text-pink-100 mb-4 md:mb-6"
-        >
-          {format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}
-        </motion.p>
+        {/* Cercles décoratifs */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-white/5 rounded-full" />
 
-        {/* Stats du jour */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 mb-4 md:mb-6">
-          {todayAvgMood !== null ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white/10 backdrop-blur-sm rounded-lg p-4 flex-1 w-full md:w-auto"
-            >
-              <p className="text-xs md:text-sm text-pink-100 mb-2">Humeur d'aujourd'hui</p>
-              <div className="flex items-center gap-3">
-                <span className="text-4xl md:text-5xl">{getMoodEmoji(todayAvgMood)}</span>
-                <span className="text-3xl md:text-4xl font-bold">{todayAvgMood}/10</span>
-              </div>
-              <p className="text-xs text-pink-100 mt-2">{todayMoods.length} entrée{todayMoods.length > 1 ? 's' : ''}</p>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white/10 backdrop-blur-sm rounded-lg p-4 flex-1 w-full md:w-auto"
-            >
-              <p className="text-sm text-pink-100 mb-2">Comment te sens-tu aujourd'hui ?</p>
-              <p className="text-xs text-pink-200">Aucune humeur enregistrée</p>
-            </motion.div>
-          )}
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-white/80" />
+            <span className="text-sm font-medium text-white/80">Suivi émotionnel</span>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              onClick={() => setIsMoodModalOpen(true)}
-              size="lg"
-              className="bg-white text-pink-600 hover:bg-pink-50 h-auto py-3 md:py-4 px-4 md:px-6"
-            >
-              <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-              Logger mon humeur
-            </Button>
-          </motion.div>
+          <h2 className="text-2xl md:text-3xl font-display font-bold mb-1">
+            Comment te sens-tu ?
+          </h2>
+          <p className="text-sm md:text-base text-white/80 mb-6">
+            {format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}
+          </p>
+
+          {/* Stats du jour */}
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
+            {todayAvgMood !== null ? (
+              <motion.div
+                variants={scaleIn}
+                className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex-1 w-full md:w-auto border border-white/10"
+              >
+                <p className="text-xs md:text-sm text-white/80 mb-2">Humeur d'aujourd'hui</p>
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl md:text-5xl">{getMoodEmoji(todayAvgMood)}</span>
+                  <div>
+                    <span className="text-3xl md:text-4xl font-display font-bold">{todayAvgMood}/10</span>
+                    <p className="text-xs text-white/70 mt-1">{todayMoods.length} entrée{todayMoods.length > 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                variants={scaleIn}
+                className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex-1 w-full md:w-auto border border-white/10"
+              >
+                <p className="text-sm text-white/80 mb-2">Comment te sens-tu aujourd'hui ?</p>
+                <p className="text-xs text-white/60">Aucune humeur enregistrée</p>
+              </motion.div>
+            )}
+
+            <motion.div variants={scaleIn}>
+              <Button
+                onClick={() => setIsMoodModalOpen(true)}
+                size="lg"
+                className="bg-white text-mood hover:bg-white/90 shadow-soft-lg hover:shadow-soft-xl hover:-translate-y-0.5 transition-all"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Logger mon humeur
+              </Button>
+            </motion.div>
+          </div>
         </div>
       </motion.div>
 
       {/* Graphique évolution et Heatmap côte à côte sur desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4">
+      <motion.div variants={staggerItem} className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4 lg:gap-6">
         <MoodHeatmap />
         <MoodChart />
-      </div>
+      </motion.div>
 
       {/* Insights émotionnels */}
-      <MoodInsights />
+      <motion.div variants={staggerItem}>
+        <MoodInsights />
+      </motion.div>
 
       {/* Corrélations Activités-Humeur */}
-      <ActivityInsights />
+      <motion.div variants={staggerItem}>
+        <ActivityInsights />
+      </motion.div>
+
+      {/* Analyse d'Énergie */}
+      <motion.div variants={staggerItem}>
+        <EnergyInsights />
+      </motion.div>
+
+      {/* Insights Avancés (Patterns temporels, social, combinaisons) */}
+      <motion.div variants={staggerItem}>
+        <AdvancedMoodInsights />
+      </motion.div>
 
       {/* Historique des humeurs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base md:text-lg flex items-center gap-2">
-            <Heart className="w-4 h-4 md:w-5 md:h-5 text-pink-500" />
-            Journal émotionnel
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MoodHistory />
-        </CardContent>
-      </Card>
+      <motion.div variants={staggerItem}>
+        <Card variant="elevated" className="border-mood/10">
+          <CardHeader>
+            <CardTitle className="text-base md:text-lg flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-mood/10">
+                <Heart className="w-4 h-4 md:w-5 md:h-5 text-mood" />
+              </div>
+              Journal émotionnel
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MoodHistory />
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Modal */}
       <MoodModal
@@ -131,6 +149,6 @@ export function MoodPage() {
         onOpenChange={setIsMoodModalOpen}
         weather={null}
       />
-    </div>
+    </motion.div>
   );
 }

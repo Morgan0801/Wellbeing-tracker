@@ -261,6 +261,7 @@ export const ACTIVITY_CATEGORIES: { type: ActivityCategory; label: string; emoji
 
 // FOCUS SESSIONS
 export type SessionType = 'pomodoro' | 'short_break' | 'long_break';
+export type StatsPeriod = 'today' | '7days' | '30days' | '90days';
 
 export interface FocusSession {
   id: string;
@@ -269,10 +270,54 @@ export interface FocusSession {
   start_time: string;
   end_time?: string;
   duration_minutes: number;
+  actual_duration_minutes?: number; // NOUVEAU - durée réelle vs prévue
   session_type: SessionType;
   completed: boolean;
   notes?: string;
+  category?: string; // NOUVEAU - nom du tag (ex: 'pro', 'perso')
+  quality_rating?: number; // NOUVEAU - évaluation 1-5
+  is_manual_entry?: boolean; // NOUVEAU - entrée manuelle vs timer
   created_at: string;
+}
+
+export interface SessionTag {
+  id: string;
+  user_id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateTagInput {
+  name: string;
+  emoji: string;
+  color: string;
+}
+
+export interface FocusStats {
+  totalMinutes: number;
+  totalSessions: number;
+  avgPerDay: number;
+  byCategory: CategoryStats[];
+  dailyActivity: DailyActivity[];
+}
+
+export interface CategoryStats {
+  category: string;
+  minutes: number;
+  sessions: number;
+  percentage: number;
+  emoji?: string;
+  color?: string;
+}
+
+export interface DailyActivity {
+  date: string;
+  minutes: number;
+  sessions: number;
 }
 
 // WATER TRACKING

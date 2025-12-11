@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Heart, ListTodo, Moon, ArrowRight } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { CheckCircle2, Heart, ListTodo, Moon, ArrowUpRight } from 'lucide-react';
 import { useHabits } from '@/hooks/useHabits';
 import { useMood } from '@/hooks/useMood';
 import { useTasks } from '@/hooks/useTasks';
 import { useSleep } from '@/hooks/useSleep';
 import { format, subDays, startOfDay } from 'date-fns';
-import { getMoodEmoji } from '@/lib/utils';
+import { getMoodEmoji, cn } from '@/lib/utils';
 import { useNavigation } from '@/contexts/NavigationContext';
 
 export function DashboardSummaryCards() {
@@ -55,90 +56,115 @@ export function DashboardSummaryCards() {
 
   const cards = [
     {
-      title: 'Habitudes',
+      title: 'Habitudes du jour',
       icon: CheckCircle2,
-      iconColor: 'text-green-600',
-      bgColor: 'bg-green-50 dark:bg-green-900/20',
-      borderColor: 'border-green-200 dark:border-green-800',
       value: `${habitsCompleted}/${totalHabits}`,
-      subtitle: `${habitsPercent}% complétées`,
+      subtitle: habitsPercent > 0 ? `${habitsPercent}% complétées` : 'Aucune complétée',
+      progress: habitsPercent,
       tab: 'habits',
-      delay: 0.1,
+      gradient: 'from-vitality-light to-vitality-light/50 dark:from-vitality/15 dark:to-vitality/5',
+      iconBg: 'bg-vitality/10',
+      iconColor: 'text-vitality',
+      progressVariant: 'vitality' as const,
     },
     {
-      title: 'Humeur 7j',
+      title: 'Humeur moyenne',
       icon: Heart,
-      iconColor: 'text-pink-600',
-      bgColor: 'bg-pink-50 dark:bg-pink-900/20',
-      borderColor: 'border-pink-200 dark:border-pink-800',
-      value: moodsLast7Days.length > 0 ? `${avgMood7d}/10` : '—',
-      subtitle: moodsLast7Days.length > 0 ? getMoodEmoji(avgMood7d) : 'Pas de données',
+      value: moodsLast7Days.length > 0 ? `${avgMood7d}/10` : '--',
+      subtitle: moodsLast7Days.length > 0 ? '7 derniers jours' : 'Pas de données',
+      emoji: moodsLast7Days.length > 0 ? getMoodEmoji(avgMood7d) : null,
       tab: 'mood',
-      delay: 0.2,
+      gradient: 'from-mood-light to-mood-light/50 dark:from-mood/15 dark:to-mood/5',
+      iconBg: 'bg-mood/10',
+      iconColor: 'text-mood',
     },
     {
       title: 'Tâches urgentes',
       icon: ListTodo,
-      iconColor: 'text-orange-600',
-      bgColor: urgentTasks > 0 ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-gray-50 dark:bg-gray-900/20',
-      borderColor: urgentTasks > 0 ? 'border-orange-200 dark:border-orange-800' : 'border-gray-200 dark:border-gray-800',
       value: urgentTasks.toString(),
-      subtitle: urgentTasks > 0 ? 'À faire !' : 'Aucune',
+      subtitle: urgentTasks > 0 ? 'À traiter' : 'Tout est ok !',
       tab: 'tasks',
-      delay: 0.3,
+      gradient: urgentTasks > 0
+        ? 'from-focus-light to-focus-light/50 dark:from-focus/15 dark:to-focus/5'
+        : 'from-muted to-muted/50',
+      iconBg: urgentTasks > 0 ? 'bg-focus/10' : 'bg-muted/30',
+      iconColor: urgentTasks > 0 ? 'text-focus' : 'text-muted-foreground',
+      alert: urgentTasks > 2,
     },
     {
-      title: 'Sommeil 7j',
+      title: 'Sommeil moyen',
       icon: Moon,
-      iconColor: 'text-indigo-600',
-      bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
-      borderColor: 'border-indigo-200 dark:border-indigo-800',
-      value: sleepLast7Days.length > 0 ? `${avgSleep7d}h` : '—',
-      subtitle: sleepLast7Days.length > 0 ? 'Moyenne' : 'Pas de données',
+      value: sleepLast7Days.length > 0 ? `${avgSleep7d}h` : '--',
+      subtitle: sleepLast7Days.length > 0 ? 'Cette semaine' : 'Pas de données',
       tab: 'sleep',
-      delay: 0.4,
+      gradient: 'from-sleep-light to-sleep-light/50 dark:from-sleep/15 dark:to-sleep/5',
+      iconBg: 'bg-sleep/10',
+      iconColor: 'text-sleep',
     },
   ];
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-      {cards.map((card) => {
+      {cards.map((card, index) => {
         const Icon = card.icon;
         return (
           <motion.div
             key={card.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: card.delay }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            transition={{ delay: index * 0.1, duration: 0.4 }}
           >
             <Card
-              className={`${card.bgColor} ${card.borderColor} border-2 cursor-pointer hover:shadow-md transition-shadow`}
+              hover
+              padding="none"
+              className={cn(
+                "overflow-hidden border-0 shadow-soft-md h-full",
+                `bg-gradient-to-br ${card.gradient}`
+              )}
               onClick={() => setActiveTab(card.tab)}
             >
-              <CardContent className="p-3 md:p-4">
+              <div className="p-4 md:p-5 h-full flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-2 md:mb-3">
-                  <Icon className={`w-4 h-4 md:w-5 md:h-5 ${card.iconColor}`} />
-                  <ArrowRight className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                <div className="flex items-start justify-between mb-3">
+                  <div className={cn("p-2.5 rounded-xl", card.iconBg)}>
+                    <Icon className={cn("w-5 h-5", card.iconColor)} />
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-muted-foreground/50" />
                 </div>
 
-                {/* Titre */}
-                <h3 className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  {card.title}
-                </h3>
-
-                {/* Valeur */}
-                <div className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                  {card.value}
+                {/* Value */}
+                <div className="mb-1 flex-1">
+                  {card.emoji ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl md:text-3xl font-display font-bold text-foreground">
+                        {card.value}
+                      </span>
+                      <span className="text-2xl">{card.emoji}</span>
+                    </div>
+                  ) : (
+                    <span className={cn(
+                      "text-2xl md:text-3xl font-display font-bold",
+                      card.alert ? "text-focus animate-pulse" : "text-foreground"
+                    )}>
+                      {card.value}
+                    </span>
+                  )}
                 </div>
 
-                {/* Subtitle */}
-                <p className="text-[10px] md:text-xs text-gray-500">
-                  {card.subtitle}
-                </p>
-              </CardContent>
+                {/* Title & Subtitle */}
+                <p className="text-xs font-medium text-foreground/80 mb-0.5">{card.title}</p>
+                <p className="text-[10px] text-muted-foreground mb-3">{card.subtitle}</p>
+
+                {/* Progress bar si applicable */}
+                {card.progress !== undefined && (
+                  <Progress
+                    value={card.progress}
+                    variant={card.progressVariant}
+                    size="sm"
+                    animated={false}
+                  />
+                )}
+              </div>
             </Card>
           </motion.div>
         );
