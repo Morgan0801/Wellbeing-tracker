@@ -140,21 +140,19 @@ export function useTasks() {
     return tasks.filter((task) => task.quadrant === quadrant && !task.completed);
   };
 
-  // Obtenir les taches par quadrant incluant celles complétées aujourd'hui
+  // Obtenir les taches par quadrant incluant celles complétées dans les dernières 24h
   const getTasksByQuadrantWithToday = (quadrant: 1 | 2 | 3 | 4) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Il y a 24 heures
 
     return tasks.filter((task) => {
       if (task.quadrant !== quadrant) return false;
       if (!task.completed) return true;
 
-      // Inclure les tâches complétées aujourd'hui
+      // Inclure les tâches complétées dans les dernières 24 heures
       if (task.completed_at) {
         const completedDate = new Date(task.completed_at);
-        completedDate.setHours(0, 0, 0, 0);
-        return completedDate.getTime() === todayTime;
+        return completedDate >= oneDayAgo;
       }
       return false;
     });

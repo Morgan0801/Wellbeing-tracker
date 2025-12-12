@@ -53,8 +53,16 @@ export function TasksPage() {
   }
 
   const activeTasks = tasks.filter((task) => !task.completed);
-  const completedTasks = getCompletedTasks();
   const today = startOfDay(new Date());
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Il y a 24 heures
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Il y a 7 jours
+
+  // Tâches complétées récentes (derniers 7 jours seulement)
+  const completedTasks = getCompletedTasks().filter((task) => {
+    if (!task.completed_at) return false;
+    return new Date(task.completed_at) >= sevenDaysAgo;
+  });
 
   // Toutes les tâches du jour
   const allTodayTasks = tasks.filter((task) => {
@@ -62,9 +70,10 @@ export function TasksPage() {
       task.deadline && startOfDay(new Date(task.deadline)).getTime() === today.getTime();
     const isQuadrantOne = task.quadrant === 1;
     const isOverdue = task.deadline && new Date(task.deadline) < today;
-    const completedToday = task.completed && task.completed_at &&
-      startOfDay(new Date(task.completed_at)).getTime() === today.getTime();
-    return hasDeadlineToday || isQuadrantOne || isOverdue || completedToday;
+    // Inclure les tâches complétées dans les dernières 24 heures (au lieu de "aujourd'hui")
+    const completedRecently = task.completed && task.completed_at &&
+      new Date(task.completed_at) >= oneDayAgo;
+    return hasDeadlineToday || isQuadrantOne || isOverdue || completedRecently;
   });
 
   const todayTasks = allTodayTasks.filter((task) => !task.completed);
