@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useFocusEnhanced } from '@/hooks/useFocusEnhanced';
 import { cn } from '@/lib/utils';
 
-interface SessionTagSelectorProps {
+interface SessionTagSelectorInlineProps {
   value: string[];
   onChange: (tags: string[]) => void;
 }
@@ -27,7 +26,7 @@ const PRESET_COLORS = [
 
 const DEFAULT_EMOJIS = ['📌', '🏠', '💼', '💪', '📚', '🚀', '🎨', '⚡', '🎯', '🌟', '🔥', '💡'];
 
-export function SessionTagSelector({ value, onChange }: SessionTagSelectorProps) {
+export function SessionTagSelectorInline({ value, onChange }: SessionTagSelectorInlineProps) {
   const { tags, createTag, deleteTag } = useFocusEnhanced();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newTagName, setNewTagName] = useState('');
@@ -74,72 +73,71 @@ export function SessionTagSelector({ value, onChange }: SessionTagSelectorProps)
 
   return (
     <>
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center justify-between">
-            <span>Catégorie de session</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowCreateDialog(true)}
-              className="h-8 px-3 text-xs"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Créer tag
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {/* Tags */}
-            {tags.map((tag) => {
-              const isSelected = value.includes(tag.name);
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Catégories de session
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCreateDialog(true)}
+            className="h-7 px-2 text-xs"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Créer
+          </Button>
+        </div>
 
-              return (
-                <div key={tag.id} className="relative group">
-                  <button
-                    onClick={() => toggleTag(tag.name)}
-                    className={cn(
-                      "px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 relative",
-                      isSelected
-                        ? "shadow-soft-md"
-                        : "hover:shadow-soft-sm"
-                    )}
-                    style={{
-                      backgroundColor: isSelected ? `${tag.color}20` : 'transparent',
-                      borderColor: isSelected ? tag.color : 'transparent',
-                      color: isSelected ? tag.color : 'inherit',
-                    }}
-                  >
-                    <span className="mr-1">{tag.emoji}</span>
-                    {tag.name}
-                  </button>
+        <div className="flex flex-wrap gap-2">
+          {/* Tags */}
+          {tags.map((tag) => {
+            const isSelected = value.includes(tag.name);
 
-                  {/* Bouton supprimer (seulement pour tags personnalisés) */}
-                  {!tag.is_default && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteTag(tag.id, tag.is_default);
-                      }}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:scale-110"
-                      title="Supprimer ce tag"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+            return (
+              <div key={tag.id} className="relative group">
+                <button
+                  onClick={() => toggleTag(tag.name)}
+                  className={cn(
+                    "px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 relative",
+                    isSelected
+                      ? "shadow-soft-md"
+                      : "hover:shadow-soft-sm"
                   )}
-                </div>
-              );
-            })}
-          </div>
+                  style={{
+                    backgroundColor: isSelected ? `${tag.color}20` : 'transparent',
+                    borderColor: isSelected ? tag.color : 'transparent',
+                    color: isSelected ? tag.color : 'inherit',
+                  }}
+                >
+                  <span className="mr-1">{tag.emoji}</span>
+                  {tag.name}
+                </button>
 
-          {value.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-3">
-              Les sessions seront enregistrées avec {value.length} tag{value.length > 1 ? 's' : ''} : <strong>{value.map(v => `#${v}`).join(', ')}</strong>
-            </p>
-          )}
-        </CardContent>
-      </Card>
+                {/* Bouton supprimer (seulement pour tags personnalisés) */}
+                {!tag.is_default && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTag(tag.id, tag.is_default);
+                    }}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:scale-110"
+                    title="Supprimer ce tag"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {value.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-3">
+            {value.length} tag{value.length > 1 ? 's' : ''} sélectionné{value.length > 1 ? 's' : ''} : <strong>{value.map(v => `#${v}`).join(', ')}</strong>
+          </p>
+        )}
+      </div>
 
       {/* Dialog de création de tag */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

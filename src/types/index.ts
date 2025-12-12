@@ -274,7 +274,8 @@ export interface FocusSession {
   session_type: SessionType;
   completed: boolean;
   notes?: string;
-  category?: string; // NOUVEAU - nom du tag (ex: 'pro', 'perso')
+  category?: string; // OBSOLETE - maintenant on utilise tags[]
+  tags?: string[]; // NOUVEAU - tableau de noms de tags
   quality_rating?: number; // NOUVEAU - évaluation 1-5
   is_manual_entry?: boolean; // NOUVEAU - entrée manuelle vs timer
   created_at: string;

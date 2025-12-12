@@ -19,7 +19,7 @@ export function useFocusEnhanced() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
 
-  // Récupérer toutes les sessions (90 jours pour stats)
+  // Récupérer toutes les sessions (90 jours pour stats) avec leurs tags
   const { data: sessions = [], isLoading: isLoadingSessions } = useQuery({
     queryKey: ['focus-sessions-enhanced', user?.id],
     queryFn: async () => {
@@ -27,7 +27,8 @@ export function useFocusEnhanced() {
 
       const startDate = format(subDays(new Date(), 90), 'yyyy-MM-dd');
 
-      const { data, error } = await supabase
+      // Récupérer les sessions
+      const { data: sessionsData, error } = await supabase
         .from('focus_sessions')
         .select('*')
         .eq('user_id', user.id)
@@ -35,7 +36,32 @@ export function useFocusEnhanced() {
         .order('start_time', { ascending: false });
 
       if (error) throw error;
-      return data as FocusSession[];
+      if (!sessionsData || sessionsData.length === 0) return [];
+
+      // Récupérer tous les tags liés à ces sessions
+      const sessionIds = sessionsData.map(s => s.id);
+      const { data: tagLinks, error: tagLinksError } = await supabase
+        .from('focus_session_tag_links')
+        .select('session_id, tag_name')
+        .in('session_id', sessionIds);
+
+      if (tagLinksError) {
+        console.error('Error fetching tag links:', tagLinksError);
+      }
+
+      // Associer les tags aux sessions
+      const sessionsWithTags = sessionsData.map(session => {
+        const sessionTags = tagLinks
+          ?.filter(link => link.session_id === session.id)
+          .map(link => link.tag_name) || [];
+
+        return {
+          ...session,
+          tags: sessionTags.length > 0 ? sessionTags : undefined,
+        } as FocusSession;
+      });
+
+      return sessionsWithTags;
     },
     enabled: !!user?.id,
   });
@@ -65,12 +91,12 @@ export function useFocusEnhanced() {
       durationMinutes = 25,
       sessionType = 'pomodoro' as SessionType,
       taskId,
-      category,
+      tags,
     }: {
       durationMinutes?: number;
       sessionType?: SessionType;
       taskId?: string;
-      category?: string;
+      tags?: string[];
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
@@ -83,12 +109,28 @@ export function useFocusEnhanced() {
           duration_minutes: durationMinutes,
           session_type: sessionType,
           completed: false,
-          category,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Insérer les tags si fournis
+      if (tags && tags.length > 0) {
+        const tagLinks = tags.map(tagName => ({
+          session_id: data.id,
+          tag_name: tagName,
+        }));
+
+        const { error: tagsError } = await supabase
+          .from('focus_session_tag_links')
+          .insert(tagLinks);
+
+        if (tagsError) {
+          console.error('Error inserting tags:', tagsError);
+        }
+      }
+
       return data as FocusSession;
     },
     onSuccess: () => {
@@ -153,13 +195,13 @@ export function useFocusEnhanced() {
     mutationFn: async ({
       startTime,
       durationMinutes,
-      category,
+      tags,
       notes,
       sessionType = 'pomodoro' as SessionType,
     }: {
       startTime: Date;
       durationMinutes: number;
-      category?: string;
+      tags?: string[];
       notes?: string;
       sessionType?: SessionType;
     }) => {
@@ -177,7 +219,6 @@ export function useFocusEnhanced() {
           actual_duration_minutes: durationMinutes,
           session_type: sessionType,
           completed: true,
-          category,
           notes,
           is_manual_entry: true,
         })
@@ -186,12 +227,28 @@ export function useFocusEnhanced() {
 
       if (error) throw error;
 
+      // Insérer les tags si fournis
+      if (tags && tags.length > 0) {
+        const tagLinks = tags.map(tagName => ({
+          session_id: data.id,
+          tag_name: tagName,
+        }));
+
+        const { error: tagsError } = await supabase
+          .from('focus_session_tag_links')
+          .insert(tagLinks);
+
+        if (tagsError) {
+          console.error('Error inserting tags:', tagsError);
+        }
+      }
+
       // Ajouter XP pour entrée manuelle (15 XP comme session normale)
       await supabase.rpc('add_xp', {
         p_user_id: user.id,
         p_action_type: 'focus_session',
         p_xp_amount: 15,
-        p_description: `Session ${category || 'Pomodoro'} ajoutée manuellement`,
+        p_description: `Session ${tags?.join(', ') || 'Pomodoro'} ajoutée manuellement`,
       });
 
       return data as FocusSession;
@@ -280,12 +337,22 @@ export function useFocusEnhanced() {
   // Fonction utilitaire : grouper par catégorie
   const groupByCategory = useCallback((filteredSessions: FocusSession[]): CategoryStats[] => {
     const grouped = filteredSessions.reduce((acc, session) => {
-      const cat = session.category || 'Sans catégorie';
-      if (!acc[cat]) {
-        acc[cat] = { minutes: 0, sessions: 0 };
-      }
-      acc[cat].minutes += session.duration_minutes;
-      acc[cat].sessions += 1;
+      // Utiliser les tags multiples, sinon catégorie unique (legacy), sinon "Sans catégorie"
+      const sessionTags = session.tags && session.tags.length > 0
+        ? session.tags
+        : session.category
+          ? [session.category]
+          : ['Sans catégorie'];
+
+      // Compter la session dans chaque tag
+      sessionTags.forEach(tagName => {
+        if (!acc[tagName]) {
+          acc[tagName] = { minutes: 0, sessions: 0 };
+        }
+        acc[tagName].minutes += session.duration_minutes;
+        acc[tagName].sessions += 1;
+      });
+
       return acc;
     }, {} as Record<string, { minutes: number; sessions: number }>);
 

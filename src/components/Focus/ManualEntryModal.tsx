@@ -24,7 +24,7 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
     date: format(new Date(), 'yyyy-MM-dd'),
     time: format(new Date(), 'HH:mm'),
     durationMinutes: 25,
-    category: null as string | null,
+    tags: [] as string[],
     notes: '',
   });
 
@@ -48,7 +48,7 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
       await createManualSession.mutateAsync({
         startTime: selectedDateTime,
         durationMinutes: formData.durationMinutes,
-        category: formData.category || undefined,
+        tags: formData.tags.length > 0 ? formData.tags : undefined,
         notes: formData.notes || undefined,
       });
 
@@ -57,13 +57,21 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
         date: format(new Date(), 'yyyy-MM-dd'),
         time: format(new Date(), 'HH:mm'),
         durationMinutes: 25,
-        category: null,
+        tags: [],
         notes: '',
       });
 
       onClose();
     } catch (error) {
       console.error('Error creating manual session:', error);
+    }
+  };
+
+  const toggleTag = (tagName: string) => {
+    if (formData.tags.includes(tagName)) {
+      setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagName) });
+    } else {
+      setFormData({ ...formData, tags: [...formData.tags, tagName] });
     }
   };
 
@@ -159,49 +167,40 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
             </div>
           </div>
 
-          {/* Catégorie */}
+          {/* Catégories (plusieurs tags possibles) */}
           <div>
             <label className="text-sm font-medium mb-2 block">
-              Catégorie (optionnel)
+              Catégories (optionnel, plusieurs choix possibles)
             </label>
             <div className="flex flex-wrap gap-2">
-              {/* Option "Aucune" */}
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, category: null })}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border ${
-                  formData.category === null
-                    ? 'bg-muted/20 border-foreground text-foreground'
-                    : 'bg-muted/5 border-transparent text-muted-foreground hover:border-muted-foreground/30'
-                }`}
-              >
-                Aucune
-              </button>
-
               {/* Tags */}
-              {tags.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() =>
-                    setFormData({ ...formData, category: tag.name })
-                  }
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border`}
-                  style={{
-                    backgroundColor:
-                      formData.category === tag.name
+              {tags.map((tag) => {
+                const isSelected = formData.tags.includes(tag.name);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.name)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border`}
+                    style={{
+                      backgroundColor: isSelected
                         ? `${tag.color}20`
                         : 'transparent',
-                    borderColor:
-                      formData.category === tag.name ? tag.color : 'transparent',
-                    color: formData.category === tag.name ? tag.color : 'inherit',
-                  }}
-                >
-                  <span className="mr-1">{tag.emoji}</span>
-                  {tag.name}
-                </button>
-              ))}
+                      borderColor: isSelected ? tag.color : 'transparent',
+                      color: isSelected ? tag.color : 'inherit',
+                    }}
+                  >
+                    <span className="mr-1">{tag.emoji}</span>
+                    {tag.name}
+                  </button>
+                );
+              })}
             </div>
+            {formData.tags.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {formData.tags.length} tag{formData.tags.length > 1 ? 's' : ''} sélectionné{formData.tags.length > 1 ? 's' : ''}
+              </p>
+            )}
           </div>
 
           {/* Notes */}

@@ -57,7 +57,6 @@ export function FocusHistory({ limit = 10 }: FocusHistoryProps) {
         <div className="space-y-3">
           {displaySessions.map((session, index) => {
             const SessionIcon = SESSION_TYPE_ICONS[session.session_type];
-            const tag = tags.find((t) => t.name === session.category);
 
             return (
               <motion.div
@@ -103,19 +102,25 @@ export function FocusHistory({ limit = 10 }: FocusHistoryProps) {
                       {SESSION_TYPE_LABELS[session.session_type]}
                     </span>
 
-                    {/* Category Badge */}
-                    {session.category && tag && (
-                      <span
-                        className="px-2 py-0.5 rounded-md text-xs font-medium"
-                        style={{
-                          backgroundColor: `${tag.color}20`,
-                          color: tag.color,
-                        }}
-                      >
-                        <span className="mr-1">{tag.emoji}</span>
-                        {session.category}
-                      </span>
-                    )}
+                    {/* Tags Badges (plusieurs tags possibles) */}
+                    {session.tags && session.tags.length > 0 && session.tags.map((tagName) => {
+                      const tagInfo = tags.find((t) => t.name === tagName);
+                      if (!tagInfo) return null;
+
+                      return (
+                        <span
+                          key={tagName}
+                          className="px-2 py-0.5 rounded-md text-xs font-medium"
+                          style={{
+                            backgroundColor: `${tagInfo.color}20`,
+                            color: tagInfo.color,
+                          }}
+                        >
+                          <span className="mr-1">{tagInfo.emoji}</span>
+                          {tagName}
+                        </span>
+                      );
+                    })}
 
                     {/* Manual Entry Badge */}
                     {session.is_manual_entry && (

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Timer, Coffee, Brain, Play, Pause, RotateCcw, Settings } from 'lucide-react';
+import { Timer, Coffee, Brain, Play, Pause, RotateCcw, Settings, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CoffeeCupAnimation } from './CoffeeCupAnimation';
+import { SessionTagSelectorInline } from './SessionTagSelectorInline';
 import { useFocusEnhanced } from '@/hooks/useFocusEnhanced';
 import { cn } from '@/lib/utils';
 import { SessionType } from '@/types';
@@ -17,11 +18,10 @@ const DEFAULT_TIMER_CONFIGS = {
 };
 
 interface PomodoroTimerProps {
-  selectedTag: string | null;
   onSessionComplete?: (sessionId: string) => void;
 }
 
-export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerProps) {
+export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   // Charger les durées personnalisées depuis localStorage
   const [customDurations, setCustomDurations] = useState(() => {
     const saved = localStorage.getItem('pomodoro-durations');
@@ -47,7 +47,8 @@ export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerP
   const [timeRemaining, setTimeRemaining] = useState(customDurations[mode] * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [showDurationEdit, setShowDurationEdit] = useState(false);
+  const [showDurationEdit, setShowDurationEdit] = useState(true); // Ouvert par défaut
+  const [selectedTags, setSelectedTags] = useState<string[]>([]); // Tags sélectionnés
 
   const startTimeRef = useRef<number | null>(null);
   const durationRef = useRef<number>(customDurations[mode] * 60);
@@ -59,9 +60,12 @@ export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerP
     duration: customDurations[mode] * 60, // en secondes
   };
 
-  // Calculer le pourcentage de progression
-  const progress = ((config.duration - timeRemaining) / config.duration) * 100;
-  const fillPercent = mode === 'pomodoro' ? 100 - progress : progress;
+  // Calculer le pourcentage de remplissage de la tasse
+  // Pour pomodoro : 100% au début (pleine) -> 0% à la fin (vide)
+  // Pour breaks : 0% au début (vide) -> 100% à la fin (pleine)
+  const fillPercent = mode === 'pomodoro'
+    ? (timeRemaining / config.duration) * 100  // Décroissant
+    : ((config.duration - timeRemaining) / config.duration) * 100;  // Croissant
 
   // Timer principal avec précision améliorée (timestamp comparison)
   useEffect(() => {
@@ -144,7 +148,7 @@ export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerP
       const session = await startSession.mutateAsync({
         durationMinutes: customDurations[mode],
         sessionType: mode as SessionType,
-        category: selectedTag || undefined,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
       });
       setCurrentSessionId(session.id);
     }
@@ -156,6 +160,26 @@ export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerP
     }
 
     setIsRunning(!isRunning);
+  };
+
+  const handleDone = async () => {
+    if (!currentSessionId) return;
+
+    // Calculer la durée réelle écoulée
+    const elapsed = Math.ceil((config.duration - timeRemaining) / 60);
+
+    completeSession.mutate({
+      id: currentSessionId,
+      completed: true,
+      actualDurationMinutes: elapsed > 0 ? elapsed : 1,
+    });
+
+    onSessionComplete?.(currentSessionId);
+    setCurrentSessionId(null);
+    setTimeRemaining(config.duration);
+    setIsRunning(false);
+    startTimeRef.current = null;
+    durationRef.current = config.duration;
   };
 
   const handleReset = () => {
@@ -203,39 +227,37 @@ export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerP
           })}
         </div>
 
-        {/* Coffee Cup Animation with Time Overlay */}
-        <div className="relative">
+        {/* Time Display (au-dessus de la tasse) */}
+        <div className="text-center mb-4">
+          <motion.span
+            key={timeRemaining}
+            initial={{ scale: 1.05, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-5xl lg:text-6xl font-mono font-bold tracking-tight text-foreground block"
+          >
+            {formatTime(timeRemaining)}
+          </motion.span>
+          <span
+            className={cn(
+              "text-xs mt-2 uppercase tracking-widest font-medium block",
+              isRunning ? `text-${config.color}` : "text-muted-foreground"
+            )}
+          >
+            {isRunning ? 'En cours' : 'En pause'}
+          </span>
+        </div>
+
+        {/* Coffee Cup Animation (sans overlay de texte) */}
+        <div className="relative mb-6">
           <CoffeeCupAnimation
             fillPercent={fillPercent}
             mode={mode === 'pomodoro' ? 'draining' : 'filling'}
             isAnimating={isRunning}
           />
-
-          {/* Time Display Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center">
-              <motion.span
-                key={timeRemaining}
-                initial={{ scale: 1.05, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="text-5xl lg:text-6xl font-mono font-bold tracking-tight text-foreground block"
-              >
-                {formatTime(timeRemaining)}
-              </motion.span>
-              <span
-                className={cn(
-                  "text-xs mt-2 uppercase tracking-widest font-medium block",
-                  isRunning ? `text-${config.color}` : "text-muted-foreground"
-                )}
-              >
-                {isRunning ? 'En cours' : 'En pause'}
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-4 mt-6">
+        <div className="flex items-center justify-center gap-3 mb-6">
           {/* Reset Button */}
           <Button
             size="icon"
@@ -243,6 +265,7 @@ export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerP
             onClick={handleReset}
             disabled={!currentSessionId && timeRemaining === config.duration}
             className="h-12 w-12 rounded-full"
+            title="Réinitialiser"
           >
             <RotateCcw className="w-5 h-5" />
           </Button>
@@ -270,6 +293,19 @@ export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerP
             )}
           </Button>
 
+          {/* Done Button (visible uniquement pendant une session) */}
+          {currentSessionId && mode === 'pomodoro' && (
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={handleDone}
+              className="h-12 w-12 rounded-full bg-green-500/10 border-green-500 hover:bg-green-500/20"
+              title="Terminer maintenant"
+            >
+              <Check className="w-5 h-5 text-green-600" />
+            </Button>
+          )}
+
           {/* Settings Button */}
           <Button
             size="icon"
@@ -284,6 +320,11 @@ export function PomodoroTimer({ selectedTag, onSessionComplete }: PomodoroTimerP
           >
             <Settings className="w-5 h-5" />
           </Button>
+        </div>
+
+        {/* Tag Selector intégré */}
+        <div className="pt-4 border-t border-border">
+          <SessionTagSelectorInline value={selectedTags} onChange={setSelectedTags} />
         </div>
 
         {/* Duration Edit Panel (collapsible) */}

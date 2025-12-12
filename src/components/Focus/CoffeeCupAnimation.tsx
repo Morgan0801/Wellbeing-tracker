@@ -10,8 +10,15 @@ export function CoffeeCupAnimation({ fillPercent, mode, isAnimating }: CoffeeCup
   // Couleur du liquide selon le mode
   const fillColor = mode === 'draining' ? '#6F4E37' : '#9CCC65'; // café marron vs thé vert
 
-  // Calculer la position Y du liquide (0 = plein, 150 = vide)
-  const liquidY = 80 + (150 * (1 - fillPercent / 100));
+  // La tasse va de Y=80 (haut) à Y=230 (bas), hauteur = 150
+  const cupTop = 80;
+  const cupBottom = 230;
+  const cupHeight = cupBottom - cupTop; // 150
+
+  // Calculer la hauteur du liquide
+  const liquidHeight = cupHeight * (fillPercent / 100);
+  // Position Y du liquide (commence du bas de la tasse)
+  const liquidY = cupBottom - liquidHeight;
 
   return (
     <svg viewBox="0 0 200 240" className="w-64 h-64 mx-auto">
@@ -63,36 +70,15 @@ export function CoffeeCupAnimation({ fillPercent, mode, isAnimating }: CoffeeCup
       {/* Liquide animé */}
       <motion.rect
         x="40"
-        y="70"
+        y={liquidY}
         width="120"
-        height="170"
+        height={liquidHeight}
         fill="url(#liquid-gradient)"
         clipPath="url(#cup-clip)"
         initial={false}
-        animate={{ y: liquidY }}
+        animate={{ y: liquidY, height: liquidHeight }}
         transition={{ duration: 1, ease: "easeInOut" }}
       />
-
-      {/* Effet de surface du liquide (vague subtile) */}
-      {fillPercent > 5 && (
-        <motion.ellipse
-          cx="100"
-          cy={liquidY + 5}
-          rx="50"
-          ry="3"
-          fill={fillColor}
-          opacity="0.6"
-          animate={isAnimating ? {
-            ry: [3, 4, 3],
-          } : {}}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          clipPath="url(#cup-clip)"
-        />
-      )}
 
       {/* Particules de vapeur (seulement si animating et assez de liquide) */}
       {isAnimating && fillPercent > 20 && (

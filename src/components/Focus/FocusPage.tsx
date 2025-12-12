@@ -4,7 +4,6 @@ import { Timer, Plus, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { PomodoroTimer } from './PomodoroTimer';
-import { SessionTagSelector } from './SessionTagSelector';
 import { FocusStatistics } from './FocusStatistics';
 import { ManualEntryModal } from './ManualEntryModal';
 import { FocusHistory } from './FocusHistory';
@@ -14,7 +13,6 @@ import { fr } from 'date-fns/locale';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 
 export function FocusPage() {
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [showStats, setShowStats] = useState(false);
 
@@ -85,16 +83,13 @@ export function FocusPage() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left Column: Timer + Tag Selector */}
-        <motion.div variants={staggerItem} className="lg:col-span-2 space-y-4">
+        {/* Left Column: Timer (avec tag selector intégré) */}
+        <motion.div variants={staggerItem} className="lg:col-span-2">
           <PomodoroTimer
-            selectedTag={selectedTag}
             onSessionComplete={() => {
               // Session complétée avec succès
             }}
           />
-
-          <SessionTagSelector value={selectedTag} onChange={setSelectedTag} />
         </motion.div>
 
         {/* Right Column: Today's Stats */}
