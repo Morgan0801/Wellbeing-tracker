@@ -75,25 +75,25 @@ export function SleepChart() {
                 <p className="text-xl md:text-2xl font-bold text-blue-600">{avgQuality30d}/10</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={chartData} margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis
                   dataKey="displayDate"
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 11 }}
                   interval="preserveStartEnd"
                 />
                 <YAxis
                   yAxisId="left"
-                  tick={{ fontSize: 10 }}
-                  label={{ value: 'Heures', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
+                  tick={{ fontSize: 11 }}
+                  label={{ value: 'Heures', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
                 />
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 11 }}
                   domain={[0, 10]}
-                  label={{ value: 'Qualité', angle: 90, position: 'insideRight', style: { fontSize: 10 } }}
+                  label={{ value: 'Qualité', angle: 90, position: 'insideRight', style: { fontSize: 11 } }}
                 />
                 <Tooltip
                   contentStyle={{

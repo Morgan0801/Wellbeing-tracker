@@ -32,33 +32,33 @@ export function Dashboard() {
         <CrossInsights />
       </motion.div>
 
-      {/* Grid principal - Bento Layout */}
+      {/* Grid principal - Bento Layout amélioré */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
         {/* Objectifs actifs - Large card */}
         <motion.div variants={staggerItem} className="lg:col-span-2">
           <ActiveGoals />
         </motion.div>
 
-        {/* Habitudes du jour - Tall card */}
-        <motion.div variants={staggerItem} className="lg:row-span-2">
+        {/* Habitudes du jour - Small card qui s'étend sur 3 lignes */}
+        <motion.div variants={staggerItem} className="lg:row-span-3">
           <TodayHabits />
         </motion.div>
 
-        {/* Calendrier stats habitudes */}
+        {/* Sommeil chart - Plus large pour meilleure lisibilité */}
+        <motion.div variants={staggerItem} className="lg:col-span-2">
+          <SleepChart />
+        </motion.div>
+
+        {/* XP Chart - Même taille que Sleep Chart */}
+        <motion.div variants={staggerItem} className="lg:col-span-2">
+          <XPChart />
+        </motion.div>
+
+        {/* Calendrier stats habitudes - Petite card */}
         <motion.div variants={staggerItem}>
           <HabitStatsCalendar />
         </motion.div>
-
-        {/* Sommeil chart */}
-        <motion.div variants={staggerItem}>
-          <SleepChart />
-        </motion.div>
       </div>
-
-      {/* XP Chart en pleine largeur */}
-      <motion.div variants={staggerItem}>
-        <XPChart />
-      </motion.div>
     </motion.div>
   );
 }

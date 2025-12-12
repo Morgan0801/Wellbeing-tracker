@@ -420,6 +420,13 @@
             "default": "60",
             "position": 12,
             "is_nullable": true
+          },
+          {
+            "name": "slept_alone",
+            "type": "bool",
+            "default": "true",
+            "position": 13,
+            "is_nullable": true
           }
         ],
         "water_logs": [
@@ -574,6 +581,64 @@
             "type": "timestamptz",
             "default": "now()",
             "position": 5,
+            "is_nullable": true
+          }
+        ],
+        "session_tags": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "position": 1,
+            "is_nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "default": null,
+            "position": 2,
+            "is_nullable": false
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "default": null,
+            "position": 3,
+            "is_nullable": false
+          },
+          {
+            "name": "emoji",
+            "type": "text",
+            "default": "'📌'::text",
+            "position": 4,
+            "is_nullable": false
+          },
+          {
+            "name": "color",
+            "type": "text",
+            "default": "'#78909C'::text",
+            "position": 5,
+            "is_nullable": false
+          },
+          {
+            "name": "is_default",
+            "type": "bool",
+            "default": "false",
+            "position": 6,
+            "is_nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 7,
+            "is_nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz",
+            "default": "now()",
+            "position": 8,
             "is_nullable": true
           }
         ],
@@ -813,6 +878,34 @@
             "type": "timestamptz",
             "default": "now()",
             "position": 10,
+            "is_nullable": true
+          },
+          {
+            "name": "category",
+            "type": "text",
+            "default": null,
+            "position": 11,
+            "is_nullable": true
+          },
+          {
+            "name": "quality_rating",
+            "type": "int4",
+            "default": null,
+            "position": 12,
+            "is_nullable": true
+          },
+          {
+            "name": "is_manual_entry",
+            "type": "bool",
+            "default": "false",
+            "position": 13,
+            "is_nullable": true
+          },
+          {
+            "name": "actual_duration_minutes",
+            "type": "int4",
+            "default": null,
+            "position": 14,
             "is_nullable": true
           }
         ],
@@ -1428,6 +1521,28 @@
           "security": "invoker",
           "volatility": "VOLATILE",
           "return_type": "integer"
+        },
+        {
+          "args": "p_user_id uuid",
+          "kind": "FUNCTION",
+          "name": "create_default_session_tags",
+          "schema": "public",
+          "source": "CREATE OR REPLACE FUNCTION public.create_default_session_tags(p_user_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  INSERT INTO session_tags (user_id, name, emoji, color, is_default)\r\n  VALUES\r\n    (p_user_id, 'perso', '🏠', '#42A5F5', true),\r\n    (p_user_id, 'pro', '💼', '#5C6BC0', true),\r\n    (p_user_id, 'sport', '💪', '#66BB6A', true),\r\n    (p_user_id, 'etudes', '📚', '#FFA726', true),\r\n    (p_user_id, 'projet', '🚀', '#AB47BC', true),\r\n    (p_user_id, 'loisirs', '🎨', '#EC407A', true)\r\n  ON CONFLICT (user_id, name) DO NOTHING;\r\nEND;\r\n$function$\n",
+          "language": "plpgsql",
+          "security": "definer",
+          "volatility": "VOLATILE",
+          "return_type": "void"
+        },
+        {
+          "args": "",
+          "kind": "FUNCTION",
+          "name": "handle_new_user_session_tags",
+          "schema": "public",
+          "source": "CREATE OR REPLACE FUNCTION public.handle_new_user_session_tags()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  PERFORM create_default_session_tags(NEW.id);\r\n  RETURN NEW;\r\nEND;\r\n$function$\n",
+          "language": "plpgsql",
+          "security": "definer",
+          "volatility": "VOLATILE",
+          "return_type": "trigger"
         },
         {
           "args": "",

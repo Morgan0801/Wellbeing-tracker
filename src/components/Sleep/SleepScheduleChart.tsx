@@ -138,15 +138,18 @@ export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
   const avgStats = useMemo(() => {
     if (chartData.length === 0) return { avgBedtime: '--:--', avgWakeup: '--:--' };
 
-    const totalBedtime = chartData.reduce((sum, d) => sum + d.bedtime, 0);
-    const totalWakeup = chartData.reduce((sum, d) => sum + d.wakeup, 0);
+    // Calculer la moyenne à partir des heures réelles (bedtimeDisplay et wakeupDisplay)
+    // et non des positions scalées
+    const totalBedtimeMinutes = chartData.reduce((sum, d) => {
+      return sum + timeToMinutes(d.bedtimeDisplay);
+    }, 0);
 
-    let avgBedtimeMinutes = Math.round(totalBedtime / chartData.length);
-    let avgWakeupMinutes = Math.round(totalWakeup / chartData.length);
+    const totalWakeupMinutes = chartData.reduce((sum, d) => {
+      return sum + timeToMinutes(d.wakeupDisplay);
+    }, 0);
 
-    // Ramener les heures > 24h à leur équivalent réel
-    if (avgBedtimeMinutes >= 24 * 60) avgBedtimeMinutes -= 24 * 60;
-    if (avgWakeupMinutes >= 24 * 60) avgWakeupMinutes -= 24 * 60;
+    const avgBedtimeMinutes = Math.round(totalBedtimeMinutes / chartData.length);
+    const avgWakeupMinutes = Math.round(totalWakeupMinutes / chartData.length);
 
     return {
       avgBedtime: minutesToTime(avgBedtimeMinutes),

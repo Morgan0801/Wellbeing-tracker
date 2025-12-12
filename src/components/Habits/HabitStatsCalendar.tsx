@@ -97,24 +97,21 @@ export function HabitStatsCalendar() {
   }
 
   return (
-    <Card className="p-3 md:p-6">
-      <CardHeader className="p-3 md:p-6 pb-3">
-        <CardTitle className="text-base md:text-lg flex items-center gap-2">
-          <BarChart2 className="w-4 h-4 md:w-5 md:h-5 text-purple-500" />
+    <Card className="p-2 md:p-4">
+      <CardHeader className="p-2 md:p-3 pb-2">
+        <CardTitle className="text-sm md:text-base flex items-center gap-2">
+          <BarChart2 className="w-4 h-4 text-purple-500" />
           Statistiques d'habitude
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="p-3 md:p-6 pt-0 space-y-4">
-        {/* Sélecteur d'habitude */}
-        <div>
-          <label className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-            Habitude :
-          </label>
+      <CardContent className="p-2 md:p-3 pt-0 space-y-2">
+        {/* Sélecteur d'habitude + Période sur la même ligne */}
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={activeHabitId || ''}
             onChange={(e) => setSelectedHabitId(e.target.value)}
-            className="w-full p-2 md:p-3 text-sm border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+            className="flex-1 min-w-[120px] p-1.5 text-xs border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
           >
             {habitsWithLogs.map((habit) => {
               const category = HABIT_CATEGORIES.find((c) => c.type === habit.category);
@@ -125,109 +122,74 @@ export function HabitStatsCalendar() {
               );
             })}
           </select>
-        </div>
 
-        {/* Sélecteur de période */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Période :</span>
-          <div className="flex gap-2 flex-wrap">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setPeriod(7)}
-              className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                period === 7
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-              }`}
-            >
-              7j
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setPeriod(30)}
-              className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                period === 30
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-              }`}
-            >
-              30j
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setPeriod(90)}
-              className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                period === 90
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-              }`}
-            >
-              90j
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setPeriod('year')}
-              className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                period === 'year'
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Année
-            </motion.button>
+          {/* Sélecteur de période */}
+          <div className="flex gap-1">
+            {[7, 30, 90, 'year'].map((p) => (
+              <motion.button
+                key={p}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setPeriod(p as 7 | 30 | 90 | 'year')}
+                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                  period === p
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                {p === 'year' ? 'An' : `${p}j`}
+              </motion.button>
+            ))}
           </div>
         </div>
 
-        {/* Toggle Total/Moyenne pour habitudes quantifiables */}
+        {/* Toggle Total/Moyenne pour habitudes quantifiables (plus compact) */}
         {selectedHabit?.quantifiable && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Affichage :</span>
-            <div className="flex gap-2">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowAverage(false)}
-                className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                  !showAverage
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Total
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowAverage(true)}
-                className={`px-3 py-1 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                  showAverage
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Moyenne
-              </motion.button>
-            </div>
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-gray-600 dark:text-gray-400">Affichage:</span>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowAverage(false)}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                !showAverage
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Total
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowAverage(true)}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                showAverage
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+              }`}
+            >
+              Moyenne
+            </motion.button>
           </div>
         )}
 
-        {/* Stats de la période */}
+        {/* Stats de la période - Plus compact */}
         <AnimatePresence mode="wait">
           <motion.div
             key={`${activeHabitId}-${period}-${showAverage}`}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-2 gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg"
+            exit={{ opacity: 0, y: -5 }}
+            className="grid grid-cols-2 gap-2 p-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg"
           >
             <div className="text-center">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                className="text-lg md:text-xl font-bold text-purple-600"
+                className="text-base md:text-lg font-bold text-purple-600"
               >
                 {periodStats.totalCount}
               </motion.div>
-              <div className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">
+              <div className="text-[9px] md:text-[10px] text-gray-600 dark:text-gray-400">
                 fois réalisé
               </div>
             </div>
@@ -238,13 +200,13 @@ export function HabitStatsCalendar() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
-                  className="text-lg md:text-xl font-bold text-green-600"
+                  className="text-base md:text-lg font-bold text-green-600"
                 >
                   {showAverage
                     ? periodStats.averageQuantity.toFixed(1)
                     : periodStats.totalQuantity}
                 </motion.div>
-                <div className="text-[10px] md:text-xs text-gray-600 dark:text-gray-400">
+                <div className="text-[9px] md:text-[10px] text-gray-600 dark:text-gray-400">
                   {selectedHabit.unit || 'unités'}{showAverage ? '/jour' : ''}
                 </div>
               </div>
@@ -252,39 +214,39 @@ export function HabitStatsCalendar() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation mois */}
+        {/* Navigation mois - Plus compact */}
         <div className="flex items-center justify-between">
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
           >
             ←
           </motion.button>
-          <div className="text-sm md:text-base font-medium">
-            {format(currentMonth, 'MMMM yyyy', { locale: fr })}
+          <div className="text-xs md:text-sm font-medium">
+            {format(currentMonth, 'MMM yyyy', { locale: fr })}
           </div>
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
             disabled={currentMonth >= new Date()}
           >
             →
           </motion.button>
         </div>
 
-        {/* Calendrier mensuel */}
-        <div className="space-y-1">
+        {/* Calendrier mensuel - Plus compact */}
+        <div className="space-y-0.5">
           {/* Jours de la semaine */}
-          <div className="grid grid-cols-7 gap-0.5 md:gap-1 text-center text-[10px] md:text-xs text-gray-500">
+          <div className="grid grid-cols-7 gap-0.5 text-center text-[9px] text-gray-500">
             {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, i) => (
               <div key={i}>{day}</div>
             ))}
           </div>
 
           {/* Grille du calendrier */}
-          <div className="grid grid-cols-7 gap-0.5 md:gap-1">
+          <div className="grid grid-cols-7 gap-0.5">
             {/* Padding pour le premier jour du mois */}
             {Array.from({ length: (startOfMonth(currentMonth).getDay() + 6) % 7 }).map((_, i) => (
               <div key={`empty-${i}`} />
@@ -298,8 +260,8 @@ export function HabitStatsCalendar() {
               return (
                 <motion.div
                   key={day.date.toISOString()}
-                  whileHover={hasLogs ? { scale: 1.1 } : {}}
-                  className={`aspect-square md:aspect-auto md:h-10 flex flex-col items-center justify-center rounded text-[10px] md:text-xs p-0.5 ${
+                  whileHover={hasLogs ? { scale: 1.05 } : {}}
+                  className={`aspect-square flex flex-col items-center justify-center rounded text-[9px] p-0.5 ${
                     hasLogs
                       ? 'bg-green-500 text-white font-medium cursor-pointer'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
@@ -312,12 +274,12 @@ export function HabitStatsCalendar() {
                       : format(day.date, 'dd MMM', { locale: fr })
                   }
                 >
-                  <div className="text-[9px] md:text-[10px]">{format(day.date, 'd')}</div>
+                  <div className="text-[8px]">{format(day.date, 'd')}</div>
                   {hasLogs && selectedHabit?.quantifiable && (
-                    <div className="text-[8px] md:text-[9px] leading-none font-bold">{day.quantity}</div>
+                    <div className="text-[7px] leading-none font-bold">{day.quantity}</div>
                   )}
                   {hasLogs && !selectedHabit?.quantifiable && (
-                    <div className="text-[7px] md:text-[8px] leading-none opacity-80">✓</div>
+                    <div className="text-[6px] leading-none opacity-80">✓</div>
                   )}
                 </motion.div>
               );
@@ -325,19 +287,19 @@ export function HabitStatsCalendar() {
           </div>
         </div>
 
-        {/* Légende */}
-        <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400 pt-2 border-t">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gray-100 dark:bg-gray-800 rounded" />
+        {/* Légende - Plus compacte */}
+        <div className="flex items-center gap-2 text-[9px] text-gray-600 dark:text-gray-400 pt-1 border-t">
+          <div className="flex items-center gap-0.5">
+            <div className="w-2 h-2 bg-gray-100 dark:bg-gray-800 rounded" />
             <span>Aucun</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-green-500 rounded" />
+          <div className="flex items-center gap-0.5">
+            <div className="w-2 h-2 bg-green-500 rounded" />
             <span>Réalisé</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 border-2 border-purple-500 rounded" />
-            <span>Aujourd'hui</span>
+          <div className="flex items-center gap-0.5">
+            <div className="w-2 h-2 border border-purple-500 rounded" />
+            <span>Auj.</span>
           </div>
         </div>
       </CardContent>
