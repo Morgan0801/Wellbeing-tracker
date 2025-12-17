@@ -1,12 +1,15 @@
+import { useCallback, useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Clock, Edit3, Coffee, Timer, Brain } from 'lucide-react';
+import { Clock, Edit3, Coffee, Timer, Brain, Trash2, Target, Zap, Star, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { IconButton } from '@/components/ui/button';
 import { useFocusEnhanced } from '@/hooks/useFocusEnhanced';
 import { motion } from 'framer-motion';
 import { staggerItem } from '@/lib/animations';
 import { cn } from '@/lib/utils';
-import { SessionType } from '@/types';
+import { FocusSession, SessionType, ENERGY_LEVELS } from '@/types';
+import { EditSessionModal } from './EditSessionModal';
 
 interface FocusHistoryProps {
   limit?: number;
@@ -25,9 +28,24 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
 };
 
 export function FocusHistory({ limit = 10 }: FocusHistoryProps) {
-  const { recentSessions, tags } = useFocusEnhanced();
+  const { recentSessions, tags, deleteSession, updateSession } = useFocusEnhanced();
+  const [editingSession, setEditingSession] = useState<FocusSession | null>(null);
 
   const displaySessions = limit ? recentSessions.slice(0, limit) : recentSessions;
+
+  const handleEdit = useCallback((session: FocusSession) => {
+    setEditingSession(session);
+  }, []);
+
+  const handleCloseEdit = useCallback(() => {
+    setEditingSession(null);
+  }, []);
+
+  const handleDelete = useCallback((session: FocusSession) => {
+    const confirmed = window.confirm('Supprimer cette session ? Cette action est irréversible.');
+    if (!confirmed) return;
+    deleteSession.mutate(session.id);
+  }, [deleteSession]);
 
   if (displaySessions.length === 0) {
     return (
@@ -158,6 +176,46 @@ export function FocusHistory({ limit = 10 }: FocusHistoryProps) {
                       </>
                     )}
                   </div>
+
+                  {/* Objectif */}
+                  {session.objective && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                      <Target className="w-3 h-3" />
+                      <span className="truncate max-w-[300px]" title={session.objective}>
+                        {session.objective}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Métriques de qualité */}
+                  {(session.pre_energy_level || session.post_focus_quality || session.distractions_count !== undefined) && (
+                    <div className="flex items-center gap-3 mt-2">
+                      {session.pre_energy_level && (
+                        <div className="flex items-center gap-1 text-xs">
+                          <Zap className="w-3 h-3 text-amber-500" />
+                          <span className="font-medium">{ENERGY_LEVELS[session.pre_energy_level - 1]?.emoji}</span>
+                          <span className="text-muted-foreground">Énergie: {session.pre_energy_level}/5</span>
+                        </div>
+                      )}
+                      {session.post_focus_quality && (
+                        <div className="flex items-center gap-1 text-xs">
+                          <Star className="w-3 h-3 text-amber-500" />
+                          <span className="text-muted-foreground">Focus: {session.post_focus_quality}/5</span>
+                        </div>
+                      )}
+                      {session.distractions_count !== undefined && session.distractions_count > 0 && (
+                        <div className="flex items-center gap-1 text-xs">
+                          <AlertCircle className="w-3 h-3 text-destructive" />
+                          <span className="text-destructive">{session.distractions_count} distraction{session.distractions_count > 1 ? 's' : ''}</span>
+                        </div>
+                      )}
+                      {session.session_mood && (
+                        <span className="text-base" title="Humeur">
+                          {session.session_mood}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Duration */}
@@ -171,10 +229,40 @@ export function FocusHistory({ limit = 10 }: FocusHistoryProps) {
                     </div>
                   )}
                 </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <IconButton
+                    aria-label="Modifier la session"
+                    onClick={() => handleEdit(session)}
+                    disabled={deleteSession.isPending || updateSession.isPending}
+                    title="Modifier"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Supprimer la session"
+                    onClick={() => handleDelete(session)}
+                    disabled={deleteSession.isPending || updateSession.isPending}
+                    className="text-destructive hover:text-destructive"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </IconButton>
+                </div>
               </motion.div>
             );
           })}
         </div>
+
+        <EditSessionModal
+          open={!!editingSession}
+          session={editingSession}
+          tags={tags}
+          isSaving={updateSession.isPending}
+          onClose={handleCloseEdit}
+          onSave={(input) => updateSession.mutateAsync(input)}
+        />
 
         {/* Show More Button */}
         {limit && recentSessions.length > limit && (

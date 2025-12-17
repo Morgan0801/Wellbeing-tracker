@@ -278,6 +278,11 @@ export interface FocusSession {
   tags?: string[]; // NOUVEAU - tableau de noms de tags
   quality_rating?: number; // NOUVEAU - évaluation 1-5
   is_manual_entry?: boolean; // NOUVEAU - entrée manuelle vs timer
+  objective?: string; // NOUVEAU - objectif de la session
+  pre_energy_level?: number; // NOUVEAU - niveau d'énergie avant (1-5)
+  post_focus_quality?: number; // NOUVEAU - qualité du focus après (1-5)
+  distractions_count?: number; // NOUVEAU - nombre de distractions
+  session_mood?: string; // NOUVEAU - mood emoji de la session
   created_at: string;
 }
 
@@ -288,6 +293,8 @@ export interface SessionTag {
   emoji: string;
   color: string;
   is_default: boolean;
+  is_favorite?: boolean; // NOUVEAU - tag favori
+  sort_order?: number; // NOUVEAU - ordre de tri personnalisé
   created_at: string;
   updated_at: string;
 }
@@ -319,6 +326,53 @@ export interface DailyActivity {
   date: string;
   minutes: number;
   sessions: number;
+}
+
+// FOCUS QUALITY METRICS
+export type DistractionType = 'phone' | 'notification' | 'person' | 'thought' | 'other';
+
+export interface DistractionLog {
+  id: string;
+  session_id: string;
+  user_id: string;
+  distraction_type: DistractionType;
+  timestamp: string;
+  notes?: string;
+  created_at: string;
+}
+
+export const ENERGY_LEVELS = [
+  { value: 1, label: 'Très faible', emoji: '😴', color: '#EF4444' },
+  { value: 2, label: 'Faible', emoji: '😔', color: '#F97316' },
+  { value: 3, label: 'Moyen', emoji: '😐', color: '#EAB308' },
+  { value: 4, label: 'Bon', emoji: '🙂', color: '#84CC16' },
+  { value: 5, label: 'Excellent', emoji: '🔥', color: '#22C55E' },
+] as const;
+
+export const DISTRACTION_TYPES = [
+  { type: 'phone' as const, label: 'Téléphone', emoji: '📱' },
+  { type: 'notification' as const, label: 'Notification', emoji: '🔔' },
+  { type: 'person' as const, label: 'Personne', emoji: '👤' },
+  { type: 'thought' as const, label: 'Pensée vagabonde', emoji: '💭' },
+  { type: 'other' as const, label: 'Autre', emoji: '❓' },
+] as const;
+
+export const SESSION_MOODS = [
+  { emoji: '🎯', label: 'Concentré' },
+  { emoji: '😤', label: 'Frustré' },
+  { emoji: '😌', label: 'Calme' },
+  { emoji: '🚀', label: 'Productif' },
+  { emoji: '😵', label: 'Fatigué' },
+  { emoji: '💪', label: 'Motivé' },
+] as const;
+
+export interface FocusQualityStats {
+  avgEnergyLevel: number;
+  avgFocusQuality: number;
+  avgDistractions: number;
+  totalSessions: number;
+  bestHours: { hour: number; avgEnergy: number }[];
+  energyFocusPairs: { energy: number; focus: number }[];
 }
 
 // WATER TRACKING

@@ -133,7 +133,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent onClose={() => onOpenChange(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto pb-24">
         <DialogHeader>
           <DialogTitle>
             {editingMood ? 'Modifier le mood' : 'Comment te sens-tu ?'}
@@ -141,7 +141,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
           <DialogDescription>Étape {step} sur 4</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 pb-4">
           {/* Étape 1: Score global */}
           {step === 1 && (
             <div className="space-y-4">
@@ -254,7 +254,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
         </div>
 
         {/* Navigation */}
-        <div className="flex gap-2 justify-between pt-4 border-t">
+        <div className="flex gap-2 justify-between pt-4 pb-6 border-t sticky bottom-0 bg-white dark:bg-gray-950 mt-auto">
           {step > 1 && (
             <Button variant="outline" onClick={() => setStep(step - 1)}>
               Précédent

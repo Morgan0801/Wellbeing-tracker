@@ -105,14 +105,14 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onClose={() => onOpenChange(false)} className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent onClose={() => onOpenChange(false)} className="max-w-md max-h-[90vh] overflow-y-auto pb-24">
         <DialogHeader>
           <DialogTitle>
             {editSleep ? 'Modifier la nuit de sommeil' : 'Ajouter une nuit de sommeil'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4 pb-4">
           {/* Date */}
           <div className="space-y-2">
             <Label htmlFor="date">Date</Label>
@@ -247,7 +247,7 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
             </button>
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div className="flex gap-2 pt-4 pb-6 sticky bottom-0 bg-white dark:bg-gray-950 mt-auto border-t">
             <Button
               type="button"
               variant="outline"

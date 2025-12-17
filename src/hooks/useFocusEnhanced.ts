@@ -92,11 +92,15 @@ export function useFocusEnhanced() {
       sessionType = 'pomodoro' as SessionType,
       taskId,
       tags,
+      objective,
+      preEnergyLevel,
     }: {
       durationMinutes?: number;
       sessionType?: SessionType;
       taskId?: string;
       tags?: string[];
+      objective?: string;
+      preEnergyLevel?: number;
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
@@ -109,6 +113,9 @@ export function useFocusEnhanced() {
           duration_minutes: durationMinutes,
           session_type: sessionType,
           completed: false,
+          objective: objective || null,
+          pre_energy_level: preEnergyLevel || null,
+          distractions_count: 0,
         })
         .select()
         .single();
@@ -148,13 +155,19 @@ export function useFocusEnhanced() {
       completed = true,
       notes,
       actualDurationMinutes,
-      qualityRating
+      qualityRating,
+      postFocusQuality,
+      distractionsCount,
+      sessionMood,
     }: {
       id: string;
       completed?: boolean;
       notes?: string;
       actualDurationMinutes?: number;
       qualityRating?: number;
+      postFocusQuality?: number;
+      distractionsCount?: number;
+      sessionMood?: string;
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
@@ -166,6 +179,9 @@ export function useFocusEnhanced() {
           notes,
           actual_duration_minutes: actualDurationMinutes,
           quality_rating: qualityRating,
+          post_focus_quality: postFocusQuality || null,
+          distractions_count: distractionsCount !== undefined ? distractionsCount : null,
+          session_mood: sessionMood || null,
         })
         .eq('id', id);
 
@@ -264,6 +280,108 @@ export function useFocusEnhanced() {
   });
 
   // Créer un nouveau tag
+  // Supprimer une session
+  const deleteSession = useMutation({
+    mutationFn: async (sessionId: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('focus_sessions')
+        .delete()
+        .eq('id', sessionId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['focus-sessions-enhanced'] });
+      toast.success('Session supprimée');
+    },
+    onError: () => {
+      toast.error('Erreur lors de la suppression de la session');
+    },
+  });
+
+  // Modifier une session
+  const updateSession = useMutation({
+    mutationFn: async ({
+      id,
+      startTime,
+      endTime,
+      durationMinutes,
+      actualDurationMinutes,
+      sessionType,
+      notes,
+      tags,
+    }: {
+      id: string;
+      startTime?: Date;
+      endTime?: Date | null;
+      durationMinutes?: number;
+      actualDurationMinutes?: number | null;
+      sessionType?: SessionType;
+      notes?: string | null;
+      tags?: string[];
+    }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const updateData: Record<string, any> = {};
+
+      if (startTime) updateData.start_time = startTime.toISOString();
+      if (typeof durationMinutes === 'number') updateData.duration_minutes = durationMinutes;
+      if (sessionType) updateData.session_type = sessionType;
+      if (notes !== undefined) updateData.notes = notes && notes.trim().length > 0 ? notes.trim() : null;
+
+      if (endTime !== undefined) {
+        updateData.end_time = endTime ? endTime.toISOString() : null;
+      }
+      if (actualDurationMinutes !== undefined) {
+        updateData.actual_duration_minutes = actualDurationMinutes;
+      }
+
+      if (tags !== undefined) {
+        updateData.category = null;
+      }
+
+      const { error } = await supabase
+        .from('focus_sessions')
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (tags !== undefined) {
+        const { error: deleteLinksError } = await supabase
+          .from('focus_session_tag_links')
+          .delete()
+          .eq('session_id', id);
+
+        if (deleteLinksError) throw deleteLinksError;
+
+        if (tags.length > 0) {
+          const links = tags.map((tagName) => ({
+            session_id: id,
+            tag_name: tagName,
+          }));
+
+          const { error: insertLinksError } = await supabase
+            .from('focus_session_tag_links')
+            .insert(links);
+
+          if (insertLinksError) throw insertLinksError;
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['focus-sessions-enhanced'] });
+      toast.success('Session mise à jour');
+    },
+    onError: () => {
+      toast.error('Erreur lors de la modification de la session');
+    },
+  });
+
   const createTag = useMutation({
     mutationFn: async (tagData: CreateTagInput) => {
       if (!user?.id) throw new Error('User not authenticated');
@@ -432,19 +550,123 @@ export function useFocusEnhanced() {
     return sessions.slice(0, 20); // Les 20 dernières sessions
   }, [sessions]);
 
+  // Tags récents (5 derniers tags utilisés)
+  const recentTags = useMemo(() => {
+    const tagCounts = new Map<string, number>();
+
+    sessions
+      .filter(s => s.completed && s.tags && s.tags.length > 0)
+      .slice(0, 10)
+      .forEach(session => {
+        session.tags?.forEach(tag => {
+          tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+        });
+      });
+
+    return Array.from(tagCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag)
+      .slice(0, 5);
+  }, [sessions]);
+
+  // Logger une distraction
+  const logDistraction = useMutation({
+    mutationFn: async ({
+      sessionId,
+      distractionType,
+      notes,
+    }: {
+      sessionId: string;
+      distractionType: string;
+      notes?: string;
+    }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('distraction_logs')
+        .insert({
+          session_id: sessionId,
+          user_id: user.id,
+          distraction_type: distractionType,
+          notes: notes || null,
+        });
+
+      if (error) throw error;
+
+      // Incrémenter le compteur de distractions dans la session
+      const { error: updateError } = await supabase.rpc('increment', {
+        row_id: sessionId,
+        x: 1,
+      }).single();
+
+      // Si la fonction RPC n'existe pas, faire une mise à jour manuelle
+      if (updateError) {
+        const { data: session } = await supabase
+          .from('focus_sessions')
+          .select('distractions_count')
+          .eq('id', sessionId)
+          .single();
+
+        if (session) {
+          await supabase
+            .from('focus_sessions')
+            .update({
+              distractions_count: (session.distractions_count || 0) + 1,
+            })
+            .eq('id', sessionId);
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['focus-sessions-enhanced'] });
+    },
+  });
+
+  // Incrémenter le compteur de distractions d'une session
+  const incrementDistractions = useMutation({
+    mutationFn: async (sessionId: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const { data: session } = await supabase
+        .from('focus_sessions')
+        .select('distractions_count')
+        .eq('id', sessionId)
+        .single();
+
+      if (!session) throw new Error('Session not found');
+
+      const { error } = await supabase
+        .from('focus_sessions')
+        .update({
+          distractions_count: (session.distractions_count || 0) + 1,
+        })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['focus-sessions-enhanced'] });
+    },
+  });
+
   return {
     // Données
     sessions,
     recentSessions,
     tags,
+    recentTags,
     isLoading: isLoadingSessions || isLoadingTags,
 
     // Mutations
     startSession,
     completeSession,
     createManualSession,
+    deleteSession,
+    updateSession,
     createTag,
     deleteTag,
+    logDistraction,
+    incrementDistractions,
 
     // Statistiques
     todayStats,

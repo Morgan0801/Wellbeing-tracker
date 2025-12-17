@@ -25,7 +25,8 @@
       "Bash(find:*)",
       "Bash(head:*)",
       "Bash(grep:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []
