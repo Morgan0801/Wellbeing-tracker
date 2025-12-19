@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Plus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,18 @@ import { getMoodEmoji } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { staggerContainer, staggerItem, scaleIn } from '@/lib/animations';
+import { fetchWeather } from '@/services/weather';
+import type { WeatherData } from '@/types';
 
 export function MoodPage() {
   const [isMoodModalOpen, setIsMoodModalOpen] = useState(false);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const { moods } = useMood();
+
+  // Récupérer la météo au chargement
+  useEffect(() => {
+    fetchWeather().then(data => setWeather(data));
+  }, []);
 
   // Mood d'aujourd'hui
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -147,7 +155,7 @@ export function MoodPage() {
       <MoodModal
         open={isMoodModalOpen}
         onOpenChange={setIsMoodModalOpen}
-        weather={null}
+        weather={weather}
       />
     </motion.div>
   );

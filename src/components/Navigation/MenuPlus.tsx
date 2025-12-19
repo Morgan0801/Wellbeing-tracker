@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckSquare, Moon, Target, Heart, Sparkles, Trophy, FileText, Bell, Palette } from 'lucide-react';
+import { X, CheckSquare, Moon, Target, Heart, Sparkles, Trophy, FileText, Bell, Palette, Bot } from 'lucide-react';
 
 interface MenuPlusProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ const secondaryMenuItems = [
   { id: 'gratitude', icon: Heart, label: 'Gratitude', color: 'text-pink-500' },
   { id: 'moodboard', icon: Sparkles, label: 'Moodboard', color: 'text-purple-500' },
   { id: 'gamification', icon: Trophy, label: 'Progression', color: 'text-yellow-500' },
+  { id: 'ai-coach', icon: Bot, label: 'Coach IA', color: 'text-violet-500' },
   { id: 'export', icon: FileText, label: 'Export', color: 'text-gray-500' },
   { id: 'notifications', icon: Bell, label: 'Rappels', color: 'text-blue-500' },
   { id: 'theme', icon: Palette, label: 'Thème', color: 'text-cyan-500' },

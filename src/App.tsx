@@ -19,6 +19,7 @@ import { GratitudePage } from './components/Gratitude/GratitudePage';
 import { MoodboardPage } from './components/Moodboard/MoodboardPage';
 import { GamificationPage } from './components/Gamification/GamificationPage';
 import { InsightsPage } from '@/components/Insights/InsightsPage';
+import { AICoachPage } from '@/components/AI/AICoachPage';
 import ExportPage from '@/components/Export/ExportPage';
 import NotificationsSettings from '@/components/Notifications/NotificationsSettings';
 import ThemeSettings from '@/components/Settings/ThemeSettings';
@@ -66,6 +67,7 @@ function App() {
             {activeTab === 'moodboard' && <MoodboardPage />}
             {activeTab === 'gamification' && <GamificationPage />}
             {activeTab === 'insights' && <InsightsPage />}
+            {activeTab === 'ai-coach' && <AICoachPage />}
             {activeTab === 'export' && <ExportPage />}
             {activeTab === 'notifications' && <NotificationsSettings />}
             {activeTab === 'theme' && <ThemeSettings />}

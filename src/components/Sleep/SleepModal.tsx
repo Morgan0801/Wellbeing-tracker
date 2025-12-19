@@ -247,7 +247,7 @@ export function SleepModal({ open, onOpenChange, editSleep }: SleepModalProps) {
             </button>
           </div>
 
-          <div className="flex gap-2 pt-4 pb-6 sticky bottom-0 bg-white dark:bg-gray-950 mt-auto border-t">
+          <div className="flex gap-2 pt-4 border-t mt-auto">
             <Button
               type="button"
               variant="outline"

@@ -23,7 +23,7 @@ export function CompactEnergySelector({ value, onChange }: CompactEnergySelector
           )}
           style={{
             backgroundColor: value === level.value ? `${level.color}20` : 'transparent',
-            ringColor: value === level.value ? level.color : undefined,
+            ['--tw-ring-color' as string]: value === level.value ? level.color : undefined,
           }}
           title={level.label}
         >

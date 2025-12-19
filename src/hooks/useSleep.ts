@@ -41,7 +41,8 @@ export function useSleep() {
           deep_hours: sleepData.deep_hours,
           avg_heart_rate: sleepData.avg_heart_rate,
           quality_score: sleepData.quality_score,
-		  notes: sleepData.notes,
+          notes: sleepData.notes,
+          slept_alone: sleepData.slept_alone,
         }])
         .select()
         .single();
@@ -68,7 +69,8 @@ export function useSleep() {
           deep_hours: sleepData.deep_hours,
           avg_heart_rate: sleepData.avg_heart_rate,
           quality_score: sleepData.quality_score,
-		  notes: sleepData.notes,
+          notes: sleepData.notes,
+          slept_alone: sleepData.slept_alone,
         })
         .eq('id', id)
         .select()

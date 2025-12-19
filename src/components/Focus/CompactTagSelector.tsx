@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useFocusEnhanced } from '@/hooks/useFocusEnhanced';
-import { SessionTag } from '@/types';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -26,7 +25,7 @@ export function CompactTagSelector({
   onChange,
   maxSelection = 5,
 }: CompactTagSelectorProps) {
-  const { tags, recentTags, createTag, deleteTag } = useFocusEnhanced();
+  const { tags, recentTags, createTag } = useFocusEnhanced();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState(DEFAULT_EMOJIS[0]);

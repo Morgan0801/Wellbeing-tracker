@@ -20,6 +20,8 @@ import { MoodHeatmapCalendar } from './MoodHeatmapCalendar';
 import { SleepHeatmapCalendar } from './SleepHeatmapCalendar';
 import { SleepMoodCorrelation } from './SleepMoodCorrelation';
 import { ShareInsightsButton } from './ShareInsightsButton';
+import { WeatherInsights } from './WeatherInsights';
+import { SleepInsights } from '../Sleep/SleepInsights';
 
 interface DomainImpact {
   domain: string;
@@ -650,6 +652,12 @@ export function InsightsPage() {
 
       {/* Sleep vs Mood Correlation */}
       <SleepMoodCorrelation />
+
+      {/* Insights Météo & Sommeil Seul/Couple */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <WeatherInsights />
+        <SleepInsights />
+      </div>
       </div>
 
       {/* 1. DOMAINES & HUMEUR */}

@@ -12,12 +12,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { EmotionSelector } from './EmotionSelector';
 import { ActivityCheckboxes } from './ActivityCheckboxes';
+import { DomainSliders } from './DomainSliders';
 import { useMood } from '@/hooks/useMood';
 import { useActivities } from '@/hooks/useActivities';
-import { MOOD_LEVELS, MoodLog } from '@/types';
+import { MOOD_LEVELS, MoodLog, DOMAINS, DomainType } from '@/types';
 import { WeatherData } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import { supabase } from '@/lib/supabase';
 
 interface MoodModalProps {
   open: boolean;
@@ -25,6 +27,13 @@ interface MoodModalProps {
   weather: WeatherData | null;
   editingMood?: MoodLog;
 }
+
+// Initialiser les domaines avec des valeurs neutres (0)
+const getInitialDomains = (): Record<DomainType, number> => {
+  const initial: Partial<Record<DomainType, number>> = {};
+  DOMAINS.forEach(d => { initial[d.type] = 0; });
+  return initial as Record<DomainType, number>;
+};
 
 export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModalProps) {
   const [step, setStep] = useState(1);
@@ -34,9 +43,28 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
   const [moodDate, setMoodDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
   const [energyLevel, setEnergyLevel] = useState(5);
+  const [domains, setDomains] = useState<Record<DomainType, number>>(getInitialDomains());
 
   const { addMood, updateMood, isAdding, isUpdating } = useMood();
   const { activityTypes, addActivityType, saveMoodActivities } = useActivities();
+
+  // Charger les mood_domains existants lors de l'édition
+  const loadExistingDomains = async (moodId: string) => {
+    const { data } = await supabase
+      .from('mood_domains')
+      .select('domain, impact')
+      .eq('mood_id', moodId);
+
+    if (data && data.length > 0) {
+      const loadedDomains = getInitialDomains();
+      data.forEach((d: { domain: string; impact: number }) => {
+        if (d.domain in loadedDomains) {
+          loadedDomains[d.domain as DomainType] = d.impact;
+        }
+      });
+      setDomains(loadedDomains);
+    }
+  };
 
   useEffect(() => {
     if (editingMood && open) {
@@ -49,6 +77,8 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
       } catch {
         setMoodDate(format(new Date(), 'yyyy-MM-dd'));
       }
+      // Charger les domaines existants
+      loadExistingDomains(editingMood.id);
     } else if (!editingMood && open) {
       setScoreGlobal(5);
       setSelectedEmotions([]);
@@ -56,6 +86,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
       setMoodDate(format(new Date(), 'yyyy-MM-dd'));
       setSelectedActivities(new Set());
       setEnergyLevel(5);
+      setDomains(getInitialDomains());
       setStep(1);
     }
   }, [editingMood, open]);
@@ -82,6 +113,11 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
       done: selectedActivities.has(a.id),
     }));
 
+    // Préparer les domains (seulement ceux qui ne sont pas à 0)
+    const domainsToSave = Object.entries(domains)
+      .filter(([, impact]) => impact !== 0)
+      .map(([domain, impact]) => ({ domain, impact }));
+
     if (editingMood) {
       await updateMood({
         id: editingMood.id,
@@ -92,6 +128,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
           weather: weather || undefined,
           energy_level: energyLevel,
           datetime: datetimeISO,
+          domains: domainsToSave,
         },
       });
 
@@ -109,6 +146,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
         weather: weather || undefined,
         energy_level: energyLevel,
         datetime: datetimeISO,
+        domains: domainsToSave,
       });
     }
 
@@ -120,6 +158,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
     setMoodDate(format(new Date(), 'yyyy-MM-dd'));
     setSelectedActivities(new Set());
     setEnergyLevel(5);
+    setDomains(getInitialDomains());
     onOpenChange(false);
   };
 
@@ -138,7 +177,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
           <DialogTitle>
             {editingMood ? 'Modifier le mood' : 'Comment te sens-tu ?'}
           </DialogTitle>
-          <DialogDescription>Étape {step} sur 4</DialogDescription>
+          <DialogDescription>Étape {step} sur 5</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4 pb-4">
@@ -225,8 +264,24 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
             </div>
           )}
 
-          {/* Étape 4: Note et date */}
+          {/* Étape 4: Impact par domaine de vie */}
           {step === 4 && (
+            <div className="space-y-4">
+              <Label>Comment ces domaines ont-ils impacté ta journée ?</Label>
+              <p className="text-sm text-muted-foreground">
+                Indique l'impact de chaque domaine sur ton humeur (-5 = très négatif, +5 = très positif, 0 = neutre)
+              </p>
+              <DomainSliders
+                domains={domains}
+                onChange={(domain, value) => {
+                  setDomains(prev => ({ ...prev, [domain]: value }));
+                }}
+              />
+            </div>
+          )}
+
+          {/* Étape 5: Note et date */}
+          {step === 5 && (
             <div className="space-y-4">
               <Label htmlFor="note">Note (optionnel)</Label>
               <p className="text-sm text-muted-foreground">
@@ -254,14 +309,14 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
         </div>
 
         {/* Navigation */}
-        <div className="flex gap-2 justify-between pt-4 pb-6 border-t sticky bottom-0 bg-white dark:bg-gray-950 mt-auto">
+        <div className="flex gap-2 justify-between pt-4 border-t mt-auto">
           {step > 1 && (
             <Button variant="outline" onClick={() => setStep(step - 1)}>
               Précédent
             </Button>
           )}
           <div className="flex-1" />
-          {step < 4 ? (
+          {step < 5 ? (
             <Button onClick={() => setStep(step + 1)}>Suivant</Button>
           ) : (
             <Button onClick={handleSubmit} disabled={isAdding || isUpdating}>

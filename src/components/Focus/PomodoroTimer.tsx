@@ -49,6 +49,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
 
   const [mode, setMode] = useState<TimerMode>('pomodoro');
   const [timeRemaining, setTimeRemaining] = useState(customDurations[mode] * 60);
+  const [sessionStartDuration, setSessionStartDuration] = useState(customDurations[mode] * 60); // Durée au début de la session
   const [isRunning, setIsRunning] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showDurationEdit, setShowDurationEdit] = useState(false); // Fermé par défaut
@@ -72,8 +73,20 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   // Pour pomodoro : 100% au début (pleine) -> 0% à la fin (vide)
   // Pour breaks : 0% au début (vide) -> 100% à la fin (pleine)
   const fillPercent = mode === 'pomodoro'
-    ? (timeRemaining / config.duration) * 100  // Décroissant
-    : ((config.duration - timeRemaining) / config.duration) * 100;  // Croissant
+    ? (timeRemaining / sessionStartDuration) * 100  // Décroissant
+    : ((sessionStartDuration - timeRemaining) / sessionStartDuration) * 100;  // Croissant
+
+  // Debug logs
+  console.log('🔍 DEBUG Timer:', {
+    mode,
+    timeRemaining,
+    sessionStartDuration,
+    fillPercent: fillPercent.toFixed(1),
+    configDuration: config.duration,
+    customDurationMinutes: customDurations[mode],
+    isRunning,
+    hasSession: !!currentSessionId
+  });
 
   // Timer principal avec précision améliorée (timestamp comparison)
   useEffect(() => {
@@ -146,17 +159,23 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
       completeSession.mutate({ id: currentSessionId, completed: false });
     }
 
+    const newDuration = customDurations[newMode] * 60;
     setMode(newMode);
-    setTimeRemaining(customDurations[newMode] * 60);
+    setTimeRemaining(newDuration);
+    setSessionStartDuration(newDuration); // Mettre à jour la durée de départ
     setIsRunning(false);
     setCurrentSessionId(null);
     startTimeRef.current = null;
-    durationRef.current = customDurations[newMode] * 60;
+    durationRef.current = newDuration;
   }, [isRunning, currentSessionId, customDurations, completeSession]);
 
   const handleToggle = async () => {
     if (!isRunning && !currentSessionId) {
       // Démarrer une nouvelle session directement avec les inputs actuels
+      // IMPORTANT: Capturer la durée AVANT de démarrer la session UNIQUEMENT à la création
+      const initialDuration = timeRemaining;
+      setSessionStartDuration(initialDuration);
+
       const session = await startSession.mutateAsync({
         durationMinutes: customDurations[mode],
         sessionType: mode as SessionType,
@@ -167,6 +186,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
       setCurrentSessionId(session.id);
       setDistractionsCount(0);
     }
+    // IMPORTANT: Ne PAS re-capturer sessionStartDuration après une pause !
 
     if (!isRunning) {
       // Réinitialiser les refs pour le nouveau démarrage
@@ -198,7 +218,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
     setShowPostSessionModal(false);
   };
 
-  const handleAddDistraction = (type: DistractionType) => {
+  const handleAddDistraction = (_type: DistractionType) => {
     if (currentSessionId) {
       setDistractionsCount(prev => prev + 1);
       incrementDistractions.mutate(currentSessionId);
@@ -239,6 +259,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
     }
 
     setTimeRemaining(config.duration);
+    setSessionStartDuration(config.duration); // Réinitialiser la durée de départ
     setIsRunning(false);
     startTimeRef.current = null;
     durationRef.current = config.duration;
@@ -452,8 +473,10 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
 
                         // Mettre à jour le timer si c'est le mode actuel
                         if (key === mode) {
-                          setTimeRemaining(newValue * 60);
-                          durationRef.current = newValue * 60;
+                          const newDurationSeconds = newValue * 60;
+                          setTimeRemaining(newDurationSeconds);
+                          setSessionStartDuration(newDurationSeconds); // Mettre à jour la durée de départ
+                          durationRef.current = newDurationSeconds;
                         }
                       }}
                       className="w-16 px-2 py-1 text-sm border border-border rounded-lg text-center bg-background"

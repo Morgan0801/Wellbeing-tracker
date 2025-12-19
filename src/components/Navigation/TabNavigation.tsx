@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Smile, CheckCircle, ListTodo, Timer,
   Calendar, Moon, Target, Heart, Palette, Trophy,
-  TrendingUp, FileText, Bell, Settings
+  TrendingUp, Sparkles, FileText, Bell, Settings
 } from 'lucide-react';
 
 interface TabNavigationProps {
@@ -24,6 +24,7 @@ const menuItems = [
   { id: 'moodboard', label: 'Moodboard', icon: Palette, color: 'text-mood', bgColor: 'bg-mood/10' },
   { id: 'gamification', label: 'Progression', icon: Trophy, color: 'text-productivity', bgColor: 'bg-productivity/10' },
   { id: 'insights', label: 'Insights', icon: TrendingUp, color: 'text-primary', bgColor: 'bg-primary/10' },
+  { id: 'ai-coach', label: 'Coach IA', icon: Sparkles, color: 'text-violet-500', bgColor: 'bg-violet-500/10' },
   { id: 'export', label: 'Export', icon: FileText, color: 'text-muted-foreground', bgColor: 'bg-muted/30' },
   { id: 'notifications', label: 'Rappels', icon: Bell, color: 'text-focus', bgColor: 'bg-focus/10' },
   { id: 'theme', label: 'Thème', icon: Settings, color: 'text-muted-foreground', bgColor: 'bg-muted/30' },
