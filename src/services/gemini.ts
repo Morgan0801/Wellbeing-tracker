@@ -1,5 +1,6 @@
 // Service pour l'API Gemini Flash
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+// Utilise Gemini 2.5 Flash (version stable la plus récente)
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 interface GeminiMessage {
   role: 'user' | 'model';
