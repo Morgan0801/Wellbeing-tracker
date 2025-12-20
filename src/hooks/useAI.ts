@@ -5,6 +5,7 @@ import { geminiService } from '@/services/gemini';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import type { AIMessage, VoiceInputResult } from '@/types/ai';
+import { aiCache, CACHE_TTL } from '@/services/aiCache';
 
 // Hook principal pour toutes les fonctionnalités IA
 export function useAI() {
@@ -226,6 +227,90 @@ export function useAI() {
   });
 
   // ============================================
+  // 5.1. INSIGHT QUOTIDIEN (NOUVEAU)
+  // ============================================
+  const { data: dailyInsight, refetch: refreshDailyInsight, isLoading: isLoadingDailyInsight } = useQuery({
+    queryKey: ['daily-insight', user?.id, format(new Date(), 'yyyy-MM-dd')],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      // Vérifier le cache d'abord
+      const cacheKey = `daily-insight-${user.id}-${format(new Date(), 'yyyy-MM-dd')}`;
+      const cached = aiCache.get<{ insight: string; tip: string; emoji: string; metric: string; trend: 'up' | 'down' | 'stable' }>(cacheKey);
+      if (cached) {
+        console.log('💾 Cache hit: daily insight');
+        return cached;
+      }
+
+      const data = await fetchUserData(3); // 3 derniers jours
+      if (!data) return null;
+
+      const recentMoods = data.moods.slice(0, 5);
+      const recentSleep = data.sleep.slice(0, 3);
+      const recentHabits = data.habitLogs.slice(0, 10);
+
+      // Calculer progrès d'aujourd'hui
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const todayHabits = data.habitLogs.filter(h => h.date === today);
+      const todayMood = data.moods.find(m => m.datetime.startsWith(today));
+      const todayFocus = data.focus.filter(f => f.start_time?.startsWith(today));
+
+      const todayProgress = {
+        habitsCompleted: todayHabits.filter(h => h.completed).length,
+        moodLogged: !!todayMood,
+        focusMinutes: todayFocus.reduce((sum, f) => sum + (f.duration || 0), 0)
+      };
+
+      const result = await geminiService.generateDailyInsight({
+        recentMoods,
+        recentSleep,
+        recentHabits,
+        todayProgress
+      });
+
+      // Mettre en cache
+      aiCache.set(cacheKey, result, CACHE_TTL.DAILY_INSIGHT);
+      return result;
+    },
+    enabled: !!user?.id,
+    staleTime: CACHE_TTL.DAILY_INSIGHT,
+    gcTime: 1000 * 60 * 60 * 24,
+  });
+
+  // ============================================
+  // 5.2. SOUTIEN MOOD BAS (NOUVEAU)
+  // ============================================
+  const generateMoodSupport = useMutation({
+    mutationFn: async (moodData: { score: number; emotions: string[] }) => {
+      setError(null);
+      const data = await fetchUserData(3); // 3 derniers jours
+
+      if (!data) throw new Error('Impossible de récupérer les données');
+
+      // Déterminer le moment de la journée
+      const now = new Date();
+      const hour = now.getHours();
+      const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+
+      // Pattern des 3 derniers moods
+      const recentPattern = data.moods.slice(0, 3).map(m => ({
+        score: m.score_global,
+        datetime: m.datetime
+      }));
+
+      return geminiService.generateMoodSupport({
+        score: moodData.score,
+        emotions: moodData.emotions,
+        recentPattern,
+        timeOfDay
+      });
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  // ============================================
   // 6. RECOMMANDATIONS D'HABITUDES
   // ============================================
   const recommendHabits = useMutation({
@@ -239,6 +324,154 @@ export function useAI() {
         habitLogs: data.habitLogs,
         moods: data.moods,
         goals: data.goals,
+      });
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  // ============================================
+  // 6.1 SUGGESTIONS D'HABITUDES SIMILAIRES (NOUVEAU)
+  // ============================================
+  const suggestHabits = useMutation({
+    mutationFn: async (params: {
+      partialName: string;
+    }) => {
+      setError(null);
+      const data = await fetchUserData(30);
+      if (!data) {
+        // Si pas de données, envoyer des tableaux vides
+        return geminiService.suggestSimilarHabits({
+          partialName: params.partialName,
+          existingHabits: [],
+          recentCompletions: [],
+          goals: [],
+        });
+      }
+
+      // Calculer les taux de complétion
+      const habitCompletionRates = data.habits.map(habit => {
+        const logs = data.habitLogs.filter((log: any) => log.habit_id === habit.id);
+        const rate = logs.length > 0 ? (logs.filter((log: any) => log.completed).length / logs.length) * 100 : 0;
+        return {
+          name: habit.name,
+          rate: Math.round(rate),
+        };
+      });
+
+      return geminiService.suggestSimilarHabits({
+        partialName: params.partialName,
+        existingHabits: data.habits.map((h: any) => ({
+          name: h.name,
+          category: h.category,
+          frequency: h.frequency,
+        })),
+        recentCompletions: habitCompletionRates,
+        goals: data.goals.map((g: any) => g.title),
+      });
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  // ============================================
+  // 6.2 SUGGESTION DE QUADRANT POUR TÂCHES (NOUVEAU)
+  // ============================================
+  const suggestTaskQuadrant = useMutation({
+    mutationFn: async (params: {
+      title: string;
+    }) => {
+      setError(null);
+
+      // Déterminer le moment de la journée
+      const hour = new Date().getHours();
+      const timeOfDay: 'morning' | 'afternoon' | 'evening' =
+        hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+
+      // Récupérer les données récentes pour obtenir l'humeur/énergie actuelle
+      const data = await fetchUserData(1);
+      const latestMood = data?.moods?.[0]?.score_global;
+
+      return geminiService.suggestTaskQuadrant({
+        title: params.title,
+        currentMood: latestMood,
+        currentEnergy: undefined, // Pas de tracking d'énergie pour l'instant
+        timeOfDay,
+      });
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  // ============================================
+  // 6.3 CONSEILS DE SOMMEIL (NOUVEAU)
+  // ============================================
+  const generateSleepTips = useMutation({
+    mutationFn: async (sleepData: {
+      last7Days: Array<{
+        date: string;
+        hours: number;
+        quality: number;
+      }>;
+    }) => {
+      setError(null);
+
+      // Récupérer l'humeur récente pour contexte
+      const data = await fetchUserData(7);
+      const recentMoods = data?.moods || [];
+      const avgMood = recentMoods.length > 0
+        ? recentMoods.reduce((sum: number, m: any) => sum + m.score_global, 0) / recentMoods.length
+        : undefined;
+
+      return geminiService.generateSleepTips({
+        last7Days: sleepData.last7Days,
+        avgMood,
+        avgEnergy: undefined, // Pas de tracking d'énergie pour l'instant
+      });
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  // ============================================
+  // 6.4 ENCOURAGEMENT POUR OBJECTIFS (NOUVEAU)
+  // ============================================
+  const generateGoalEncouragement = useMutation({
+    mutationFn: async (goalData: {
+      goalId: string;
+      title: string;
+      category: string;
+      targetDate?: string;
+      description?: string;
+    }) => {
+      setError(null);
+
+      // Récupérer les milestones de cet objectif
+      const { data: milestones } = await supabase
+        .from('goal_milestones')
+        .select('*')
+        .eq('goal_id', goalData.goalId)
+        .order('created_at', { ascending: true });
+
+      const milestonesData = milestones || [];
+      const completedMilestones = milestonesData.filter((m: any) => m.completed).length;
+      const progress = milestonesData.length > 0
+        ? Math.round((completedMilestones / milestonesData.length) * 100)
+        : 0;
+
+      return geminiService.generateGoalEncouragement({
+        title: goalData.title,
+        progress,
+        milestones: milestonesData.map((m: any) => ({
+          title: m.title,
+          completed: m.completed,
+        })),
+        relatedHabits: [], // Pas de lien direct pour l'instant
+        relatedTasks: [], // Pas de lien direct pour l'instant
       });
     },
     onError: (err: Error) => {
@@ -429,10 +662,15 @@ export function useAI() {
                   analyzeNotes.isPending ||
                   semanticSearch.isPending ||
                   recommendHabits.isPending ||
+                  suggestHabits.isPending ||
+                  suggestTaskQuadrant.isPending ||
+                  generateSleepTips.isPending ||
+                  generateGoalEncouragement.isPending ||
                   analyzeFocusSession.isPending ||
                   askQuestion.isPending ||
                   generateNarrativeExport.isPending ||
-                  processVoiceInput.isPending,
+                  processVoiceInput.isPending ||
+                  generateMoodSupport.isPending,
     error,
     clearError,
 
@@ -467,10 +705,40 @@ export function useAI() {
     dailyAffirmation,
     refreshAffirmation,
 
+    // 5.1 Insight quotidien (NOUVEAU)
+    dailyInsight,
+    refreshDailyInsight,
+    isLoadingDailyInsight,
+
+    // 5.2 Soutien mood bas (NOUVEAU)
+    generateMoodSupport: generateMoodSupport.mutateAsync,
+    moodSupport: generateMoodSupport.data,
+    isGeneratingMoodSupport: generateMoodSupport.isPending,
+
     // 6. Recommandations d'habitudes
     recommendHabits: recommendHabits.mutateAsync,
     habitRecommendations: recommendHabits.data,
     isRecommendingHabits: recommendHabits.isPending,
+
+    // 6.1 Suggestions d'habitudes similaires (NOUVEAU)
+    suggestHabits: suggestHabits.mutateAsync,
+    habitSuggestions: suggestHabits.data,
+    isSuggestingHabits: suggestHabits.isPending,
+
+    // 6.2 Suggestion de quadrant pour tâches (NOUVEAU)
+    suggestTaskQuadrant: suggestTaskQuadrant.mutateAsync,
+    taskQuadrantSuggestion: suggestTaskQuadrant.data,
+    isSuggestingTaskQuadrant: suggestTaskQuadrant.isPending,
+
+    // 6.3 Conseils de sommeil (NOUVEAU)
+    generateSleepTips: generateSleepTips.mutateAsync,
+    sleepTips: generateSleepTips.data,
+    isGeneratingSleepTips: generateSleepTips.isPending,
+
+    // 6.4 Encouragement pour objectifs (NOUVEAU)
+    generateGoalEncouragement: generateGoalEncouragement.mutateAsync,
+    goalEncouragement: generateGoalEncouragement.data,
+    isGeneratingGoalEncouragement: generateGoalEncouragement.isPending,
 
     // 7. Analyse focus
     analyzeFocusSession: analyzeFocusSession.mutateAsync,
