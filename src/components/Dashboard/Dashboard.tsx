@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
 import { PerformanceHeader } from './PerformanceHeader';
 import { DashboardSummaryCards } from './DashboardSummaryCards';
+import { AIDailyInsightCard } from './AIDailyInsightCard';
+import { AIWeeklyInsightsCard } from './AIWeeklyInsightsCard';
+import { AITokenStatsCard } from './AITokenStatsCard';
 import { TodayHabits } from './TodayHabits';
 import { XPChart } from './XPChart';
 import { SleepChart } from './SleepChart';
@@ -20,6 +23,21 @@ export function Dashboard() {
       {/* Header avec salutation personnalisée */}
       <motion.div variants={staggerItem}>
         <PerformanceHeader />
+      </motion.div>
+
+      {/* Insight quotidien IA */}
+      <motion.div variants={staggerItem}>
+        <AIDailyInsightCard />
+      </motion.div>
+
+      {/* Insights hebdomadaires IA - Corrélations */}
+      <motion.div variants={staggerItem}>
+        <AIWeeklyInsightsCard />
+      </motion.div>
+
+      {/* Stats d'utilisation des tokens IA */}
+      <motion.div variants={staggerItem}>
+        <AITokenStatsCard />
       </motion.div>
 
       {/* Summary Cards - Style Bento */}

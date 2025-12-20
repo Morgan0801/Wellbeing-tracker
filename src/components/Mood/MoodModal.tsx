@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { EmotionSelector } from './EmotionSelector';
 import { ActivityCheckboxes } from './ActivityCheckboxes';
 import { DomainSliders } from './DomainSliders';
+import { AIMoodSupportCard } from './AIMoodSupportCard';
 import { useMood } from '@/hooks/useMood';
 import { useActivities } from '@/hooks/useActivities';
 import { MOOD_LEVELS, MoodLog, DOMAINS, DomainType } from '@/types';
@@ -236,6 +237,13 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
               </div>
             </div>
           )}
+
+          {/* Carte de soutien IA (si score < 5) */}
+          <AIMoodSupportCard
+            score={scoreGlobal}
+            emotions={selectedEmotions}
+            show={step >= 1}
+          />
 
           {/* Étape 2: Émotions */}
           {step === 2 && (

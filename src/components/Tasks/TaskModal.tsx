@@ -11,8 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useTasks } from '@/hooks/useTasks';
+import { useAI } from '@/hooks/useAI';
 import { Task, TASK_QUADRANTS } from '@/types';
 import { cn } from '@/lib/utils';
+import { Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TaskModalProps {
   open: boolean;
@@ -70,6 +73,7 @@ export function TaskModal({
   editTask,
 }: TaskModalProps) {
   const { addTask, updateTask, isAddingTask } = useTasks();
+  const ai = useAI();
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState('');
@@ -77,6 +81,14 @@ export function TaskModal({
   const [hasDeadline, setHasDeadline] = useState(false);
   const [deadline, setDeadline] = useState('');
   const [recurring, setRecurring] = useState(false);
+
+  // AI suggestions state
+  const [aiSuggestion, setAiSuggestion] = useState<{
+    quadrant: 1 | 2 | 3 | 4;
+    reason: string;
+  } | null>(null);
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (editTask && open) {
@@ -99,6 +111,58 @@ export function TaskModal({
       setTimeout(() => titleInputRef.current?.focus(), 100);
     }
   }, [open]);
+
+  // Debounced AI quadrant suggestion
+  useEffect(() => {
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    // Don't suggest if:
+    // - editing existing task
+    // - title too short
+    // - AI not configured
+    if (editTask || title.length < 5 || !ai.isConfigured) {
+      setAiSuggestion(null);
+      setIsLoadingSuggestion(false);
+      return;
+    }
+
+    // Set loading state
+    setIsLoadingSuggestion(true);
+
+    // Debounce: wait 600ms after user stops typing
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const suggestion = await ai.suggestTaskQuadrant({
+          title,
+        });
+        setAiSuggestion({
+          quadrant: suggestion.quadrant,
+          reason: suggestion.reason,
+        });
+      } catch (error) {
+        console.error('Erreur suggestion quadrant:', error);
+        setAiSuggestion(null);
+      } finally {
+        setIsLoadingSuggestion(false);
+      }
+    }, 600);
+
+    // Cleanup
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [title, editTask, ai.isConfigured]);
+
+  const handleApplySuggestion = () => {
+    if (aiSuggestion) {
+      setQuadrant(aiSuggestion.quadrant);
+    }
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -158,7 +222,57 @@ export function TaskModal({
           </div>
 
           <div className="space-y-2">
-            <Label>Quadrant (Eisenhower)</Label>
+            <div className="flex items-center justify-between">
+              <Label>Quadrant (Eisenhower)</Label>
+              {/* AI Suggestion Badge */}
+              <AnimatePresence>
+                {isLoadingSuggestion && ai.isConfigured && !editTask && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md"
+                  >
+                    <Loader2 className="w-3 h-3 animate-spin text-gray-500" />
+                    <span className="text-xs text-gray-500">Analyse...</span>
+                  </motion.div>
+                )}
+                {!isLoadingSuggestion && aiSuggestion && !editTask && aiSuggestion.quadrant !== quadrant && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    type="button"
+                    onClick={handleApplySuggestion}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700 rounded-md hover:shadow-sm transition-all"
+                    title={aiSuggestion.reason}
+                  >
+                    <Sparkles className="w-3 h-3 text-purple-500" />
+                    <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                      Suggère Q{aiSuggestion.quadrant}
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-purple-500" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Show reason below if suggestion exists */}
+            <AnimatePresence>
+              {!isLoadingSuggestion && aiSuggestion && !editTask && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800"
+                >
+                  <p className="text-xs text-purple-700 dark:text-purple-300 italic leading-relaxed">
+                    💡 {aiSuggestion.reason}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="grid grid-cols-2 gap-2">
               {TASK_QUADRANTS.map((q) => (
                 <button
@@ -170,6 +284,10 @@ export function TaskModal({
                     quadrant === q.id
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300',
+                    // Highlight suggested quadrant
+                    !editTask && aiSuggestion && aiSuggestion.quadrant === q.id && quadrant !== q.id
+                      ? 'ring-2 ring-purple-300 dark:ring-purple-700'
+                      : '',
                   )}
                 >
                   <div className="text-2xl mb-1">{q.emoji}</div>

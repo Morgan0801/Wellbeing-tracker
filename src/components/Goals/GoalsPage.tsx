@@ -4,6 +4,7 @@ import { Plus, Target, CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { GoalModal } from './GoalModal';
+import { AIGoalEncouragementCard } from './AIGoalEncouragementCard';
 import { useGoals } from '@/hooks/useGoals';
 import { GOAL_CATEGORIES } from '@/types/phase4-types';
 import { formatDate, cn } from '@/lib/utils';
@@ -90,6 +91,11 @@ export function GoalsPage() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* AI Goal Encouragement */}
+      <motion.div variants={staggerItem}>
+        <AIGoalEncouragementCard activeGoals={activeGoals} />
       </motion.div>
 
       {/* Objectifs actifs */}

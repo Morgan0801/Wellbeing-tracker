@@ -33,6 +33,37 @@ export function AICoachPage() {
   const [summaryPeriod, setSummaryPeriod] = useState<'week' | 'month'>('week');
   const [exportPeriod, setExportPeriod] = useState<'week' | 'month' | '3months'>('week');
 
+  // Helper pour les couleurs basées sur le type de corrélation
+  const getTypeColors = (type: string) => {
+    switch (type) {
+      case 'good_news':
+        return {
+          card: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500',
+          badge: 'bg-emerald-200 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-200',
+          number: 'bg-emerald-500',
+          action: 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700',
+          actionText: 'text-emerald-800 dark:text-emerald-200'
+        };
+      case 'average':
+        return {
+          card: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500',
+          badge: 'bg-yellow-200 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-200',
+          number: 'bg-yellow-500',
+          action: 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-300 dark:border-yellow-700',
+          actionText: 'text-yellow-800 dark:text-yellow-200'
+        };
+      case 'concern':
+      default:
+        return {
+          card: 'bg-red-50 dark:bg-red-900/20 border-red-500',
+          badge: 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200',
+          number: 'bg-red-500',
+          action: 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700',
+          actionText: 'text-red-800 dark:text-red-200'
+        };
+    }
+  };
+
   // Vérifier si l'API est configurée
   if (!ai.isConfigured) {
     return (
@@ -337,13 +368,54 @@ export function AICoachPage() {
               </button>
             </div>
 
-            {ai.correlationsResult && (
+            {ai.correlationsResult && ai.correlationsResult.correlations && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="prose prose-sm dark:prose-invert max-w-none bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4"
+                className="space-y-2.5"
               >
-                <ReactMarkdown>{ai.correlationsResult}</ReactMarkdown>
+                {ai.correlationsResult.correlations.map((correlation: any, idx: number) => {
+                  const colors = getTypeColors(correlation.type || 'concern');
+                  const typeEmoji = correlation.type === 'good_news' ? '🎉' :
+                                   correlation.type === 'average' ? '📊' : '⚠️';
+                  const typeLabel = correlation.type === 'good_news' ? 'Bonne nouvelle' :
+                                   correlation.type === 'average' ? 'Neutre' : correlation.impact;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-3.5 rounded-xl border-l-4 ${colors.card} space-y-2`}
+                    >
+                      {/* Header compact avec badge impact */}
+                      <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${colors.number}`}>
+                          {idx + 1}
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${colors.badge}`}>
+                          {typeEmoji} {typeLabel}
+                        </span>
+                      </div>
+
+                      {/* Observation - gras et compact */}
+                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-snug">
+                        📊 {correlation.observation}
+                      </p>
+
+                      {/* Explication - plus petite */}
+                      <p className="text-xs text-gray-600 dark:text-gray-400 leading-snug">
+                        {correlation.explication}
+                      </p>
+
+                      {/* Action - encadré distinctif */}
+                      <div className={`mt-1.5 p-2.5 rounded-lg border ${colors.action}`}>
+                        <p className={`text-xs font-semibold flex items-start gap-1.5 ${colors.actionText}`}>
+                          <span className="text-sm">💡</span>
+                          <span className="flex-1">{correlation.action}</span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </motion.div>
             )}
 
@@ -402,9 +474,33 @@ export function AICoachPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="prose prose-sm dark:prose-invert max-w-none bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4"
+                className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 rounded-xl p-5 border border-violet-200 dark:border-violet-800"
               >
-                <ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    h2: ({children}) => (
+                      <h2 className="text-lg font-bold text-violet-900 dark:text-violet-100 mt-4 mb-2 first:mt-0 flex items-center gap-2">
+                        {children}
+                      </h2>
+                    ),
+                    ul: ({children}) => (
+                      <ul className="space-y-1.5 my-2 list-none pl-0">
+                        {children}
+                      </ul>
+                    ),
+                    li: ({children}) => (
+                      <li className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2 py-0.5">
+                        <span className="text-violet-500 mt-0.5">•</span>
+                        <span className="flex-1">{children}</span>
+                      </li>
+                    ),
+                    p: ({children}) => (
+                      <p className="text-sm text-gray-800 dark:text-gray-200 my-2 leading-relaxed">
+                        {children}
+                      </p>
+                    ),
+                  }}
+                >
                   {summaryPeriod === 'week' ? ai.weeklySummary! : ai.monthlySummary!}
                 </ReactMarkdown>
               </motion.div>
@@ -450,9 +546,35 @@ export function AICoachPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="prose prose-sm dark:prose-invert max-w-none bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4"
+                className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800"
               >
-                <ReactMarkdown>{ai.notesAnalysis}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    h2: ({children}) => (
+                      <h2 className="text-base font-bold text-blue-900 dark:text-blue-100 mt-3 mb-2 first:mt-0">
+                        {children}
+                      </h2>
+                    ),
+                    ul: ({children}) => (
+                      <ul className="space-y-1 my-2 list-none pl-0">
+                        {children}
+                      </ul>
+                    ),
+                    li: ({children}) => (
+                      <li className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2 py-0.5">
+                        <span className="text-blue-500">•</span>
+                        <span className="flex-1">{children}</span>
+                      </li>
+                    ),
+                    p: ({children}) => (
+                      <p className="text-sm text-gray-800 dark:text-gray-200 my-1.5 leading-relaxed">
+                        {children}
+                      </p>
+                    ),
+                  }}
+                >
+                  {ai.notesAnalysis}
+                </ReactMarkdown>
               </motion.div>
             )}
 
@@ -502,9 +624,27 @@ export function AICoachPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="prose prose-sm dark:prose-invert max-w-none bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4"
+                className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-5 border border-emerald-200 dark:border-emerald-800"
               >
-                <ReactMarkdown>{ai.searchResults}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    h3: ({children}) => (
+                      <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-100 mt-3 mb-1 first:mt-0">
+                        {children}
+                      </h3>
+                    ),
+                    p: ({children}) => (
+                      <p className="text-xs text-gray-700 dark:text-gray-300 my-1 leading-relaxed">
+                        {children}
+                      </p>
+                    ),
+                    hr: () => (
+                      <hr className="my-3 border-emerald-200 dark:border-emerald-800" />
+                    ),
+                  }}
+                >
+                  {ai.searchResults}
+                </ReactMarkdown>
               </motion.div>
             )}
 
@@ -588,9 +728,35 @@ export function AICoachPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="prose prose-sm dark:prose-invert max-w-none bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4"
+                className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl p-5 border border-amber-200 dark:border-amber-800"
               >
-                <ReactMarkdown>{ai.habitRecommendations}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    h2: ({children}) => (
+                      <h2 className="text-base font-bold text-amber-900 dark:text-amber-100 mt-3 mb-2 first:mt-0">
+                        {children}
+                      </h2>
+                    ),
+                    ul: ({children}) => (
+                      <ul className="space-y-1.5 my-2 list-none pl-0">
+                        {children}
+                      </ul>
+                    ),
+                    li: ({children}) => (
+                      <li className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2 py-0.5">
+                        <span className="text-amber-500">•</span>
+                        <span className="flex-1">{children}</span>
+                      </li>
+                    ),
+                    p: ({children}) => (
+                      <p className="text-sm text-gray-800 dark:text-gray-200 my-1.5 leading-relaxed">
+                        {children}
+                      </p>
+                    ),
+                  }}
+                >
+                  {ai.habitRecommendations}
+                </ReactMarkdown>
               </motion.div>
             )}
 

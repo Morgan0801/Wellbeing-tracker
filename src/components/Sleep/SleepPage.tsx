@@ -9,6 +9,7 @@ import { SleepCalendar } from './SleepCalendar';
 import { SleepStatsChart } from './SleepStatsChart';
 import { SleepScheduleChart } from './SleepScheduleChart';
 import { SleepInsights } from './SleepInsights';
+import { AISleepTipsCard } from './AISleepTipsCard';
 import { useSleep } from '@/hooks/useSleep';
 import { SleepLog } from '@/types';
 import { cn } from '@/lib/utils';
@@ -150,6 +151,11 @@ export function SleepPage() {
       {/* Insights Sommeil */}
       <motion.div variants={staggerItem}>
         <SleepInsights />
+      </motion.div>
+
+      {/* AI Sleep Tips */}
+      <motion.div variants={staggerItem}>
+        <AISleepTipsCard recentSleepLogs={sleepLogs} />
       </motion.div>
 
       {/* Liste des logs récents */}
