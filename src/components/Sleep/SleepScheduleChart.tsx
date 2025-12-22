@@ -138,18 +138,32 @@ export function SleepScheduleChart({ sleepLogs }: SleepScheduleChartProps) {
   const avgStats = useMemo(() => {
     if (chartData.length === 0) return { avgBedtime: '--:--', avgWakeup: '--:--' };
 
-    // Calculer la moyenne à partir des heures réelles (bedtimeDisplay et wakeupDisplay)
-    // et non des positions scalées
-    const totalBedtimeMinutes = chartData.reduce((sum, d) => {
-      return sum + timeToMinutes(d.bedtimeDisplay);
-    }, 0);
+    // Calcul circulaire pour gérer le passage de minuit
+    // Convertir heures en angles (0-24h = 0-360°), calculer moyenne des vecteurs
 
-    const totalWakeupMinutes = chartData.reduce((sum, d) => {
-      return sum + timeToMinutes(d.wakeupDisplay);
-    }, 0);
+    // Pour l'heure de coucher
+    const bedtimeAngles = chartData.map(d => {
+      const minutes = timeToMinutes(d.bedtimeDisplay);
+      return (minutes / (24 * 60)) * 2 * Math.PI; // Convertir en radians
+    });
 
-    const avgBedtimeMinutes = Math.round(totalBedtimeMinutes / chartData.length);
-    const avgWakeupMinutes = Math.round(totalWakeupMinutes / chartData.length);
+    const bedtimeSinSum = bedtimeAngles.reduce((sum, angle) => sum + Math.sin(angle), 0);
+    const bedtimeCosSum = bedtimeAngles.reduce((sum, angle) => sum + Math.cos(angle), 0);
+    const avgBedtimeAngle = Math.atan2(bedtimeSinSum / chartData.length, bedtimeCosSum / chartData.length);
+    let avgBedtimeMinutes = Math.round((avgBedtimeAngle / (2 * Math.PI)) * 24 * 60);
+    if (avgBedtimeMinutes < 0) avgBedtimeMinutes += 24 * 60; // Normaliser si négatif
+
+    // Pour l'heure de lever
+    const wakeupAngles = chartData.map(d => {
+      const minutes = timeToMinutes(d.wakeupDisplay);
+      return (minutes / (24 * 60)) * 2 * Math.PI;
+    });
+
+    const wakeupSinSum = wakeupAngles.reduce((sum, angle) => sum + Math.sin(angle), 0);
+    const wakeupCosSum = wakeupAngles.reduce((sum, angle) => sum + Math.cos(angle), 0);
+    const avgWakeupAngle = Math.atan2(wakeupSinSum / chartData.length, wakeupCosSum / chartData.length);
+    let avgWakeupMinutes = Math.round((avgWakeupAngle / (2 * Math.PI)) * 24 * 60);
+    if (avgWakeupMinutes < 0) avgWakeupMinutes += 24 * 60;
 
     return {
       avgBedtime: minutesToTime(avgBedtimeMinutes),

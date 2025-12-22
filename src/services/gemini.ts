@@ -384,6 +384,10 @@ Important :
     sleep: unknown[];
     habits: unknown[];
     focus: unknown[];
+    moodActivities?: unknown[];
+    moodDomains?: unknown[];
+    activityTypes?: unknown[];
+    gamification?: unknown;
   }): Promise<{ correlations: { impact: string; observation: string; explication: string; action: string }[] }> {
     // PRE-TRAITEMENT: Calculer des statistiques agrégées
     const moodsTyped = data.moods as { score_global: number; datetime: string; note?: string; emotions?: string[] }[];
@@ -437,6 +441,85 @@ Important :
     // Corrélations sommeil-humeur
     const sleepMoodPairs = this.pairSleepWithNextDayMood(data.sleep, data.moods);
 
+    // ✅ NOUVELLES STATS: Activités → Humeur
+    const moodActivitiesTyped = (data.moodActivities || []) as { mood_id: string; activity_type_id: string; done: boolean }[];
+    const activityTypesTyped = (data.activityTypes || []) as { id: string; name: string; emoji: string }[];
+    const activityImpacts: { name: string; emoji: string; avgMoodWith: string; avgMoodWithout: string; occurrences: number }[] = [];
+
+    if (moodActivitiesTyped.length > 0 && activityTypesTyped.length > 0) {
+      activityTypesTyped.forEach(activityType => {
+        const moodsWithActivity = new Set<string>();
+        moodActivitiesTyped
+          .filter(ma => ma.activity_type_id === activityType.id && ma.done)
+          .forEach(ma => moodsWithActivity.add(ma.mood_id));
+
+        const moodsWithScores: number[] = [];
+        const moodsWithoutScores: number[] = [];
+
+        moodsTyped.forEach(m => {
+          if (moodsWithActivity.has(m.datetime)) {
+            moodsWithScores.push(m.score_global);
+          } else {
+            moodsWithoutScores.push(m.score_global);
+          }
+        });
+
+        if (moodsWithScores.length >= 2 && moodsWithoutScores.length >= 2) {
+          const avgWith = (moodsWithScores.reduce((a, b) => a + b, 0) / moodsWithScores.length).toFixed(1);
+          const avgWithout = (moodsWithoutScores.reduce((a, b) => a + b, 0) / moodsWithoutScores.length).toFixed(1);
+          activityImpacts.push({
+            name: activityType.name,
+            emoji: activityType.emoji,
+            avgMoodWith: avgWith,
+            avgMoodWithout: avgWithout,
+            occurrences: moodsWithScores.length
+          });
+        }
+      });
+    }
+
+    // ✅ NOUVELLES STATS: Domaines → Humeur
+    const moodDomainsTyped = (data.moodDomains || []) as { mood_id: string; domain: string; impact: number }[];
+    const domainStats: { domain: string; avgImpact: string; count: number; correlationWithMood: string }[] = [];
+
+    if (moodDomainsTyped.length > 0) {
+      const domainGroups: Record<string, { impacts: number[]; moodScores: number[] }> = {};
+
+      moodDomainsTyped.forEach(md => {
+        if (!domainGroups[md.domain]) {
+          domainGroups[md.domain] = { impacts: [], moodScores: [] };
+        }
+        domainGroups[md.domain].impacts.push(md.impact);
+
+        // Trouver le mood correspondant
+        const mood = moodsTyped.find(m => m.datetime === md.mood_id);
+        if (mood) {
+          domainGroups[md.domain].moodScores.push(mood.score_global);
+        }
+      });
+
+      Object.entries(domainGroups).forEach(([domain, data]) => {
+        if (data.impacts.length >= 3) {
+          const avgImpact = (data.impacts.reduce((a, b) => a + b, 0) / data.impacts.length).toFixed(1);
+          const avgMood = data.moodScores.length > 0
+            ? (data.moodScores.reduce((a, b) => a + b, 0) / data.moodScores.length).toFixed(1)
+            : 'N/A';
+          domainStats.push({
+            domain,
+            avgImpact,
+            count: data.impacts.length,
+            correlationWithMood: avgMood
+          });
+        }
+      });
+    }
+
+    // ✅ NOUVELLES STATS: Gamification
+    const gamificationTyped = data.gamification as { total_xp: number; level: number; current_streak: number; badges: string[] } | undefined;
+    const gamificationSummary = gamificationTyped
+      ? `Level ${gamificationTyped.level} | ${gamificationTyped.total_xp} XP | Streak: ${gamificationTyped.current_streak}j | ${gamificationTyped.badges?.length || 0} badges`
+      : 'Aucune donnée';
+
     const context = `
 STATISTIQUES AGRÉGÉES DES 30 DERNIERS JOURS:
 
@@ -465,6 +548,15 @@ ${habitStats.length > 0 ? habitStats.map(h => `  ${h.habitude}: ${h.taux} (${h.c
 - Nombre de sessions: ${focusTyped.length}
 - Par tag (top 5):
 ${focusByTag.slice(0, 5).map(t => `  ${t.tag}: ${t.sessions} sessions, ${t.moyenne_min} min/session`).join('\n')}
+
+🎨 ACTIVITÉS → HUMEUR (impact mesuré):
+${activityImpacts.length > 0 ? activityImpacts.map(a => `  ${a.emoji} ${a.name}: Humeur AVEC = ${a.avgMoodWith}/10, SANS = ${a.avgMoodWithout}/10 (${a.occurrences}x)`).join('\n') : '  Pas assez de données'}
+
+🏠 DOMAINES DE VIE → HUMEUR:
+${domainStats.length > 0 ? domainStats.map(d => `  ${d.domain}: Impact moyen ${d.avgImpact}/5, Humeur associée ${d.correlationWithMood}/10 (${d.count} entrées)`).join('\n') : '  Pas assez de données'}
+
+🎮 GAMIFICATION:
+${gamificationSummary}
 `;
 
     // Utiliser le cache pour économiser 90% sur les tokens d'input
@@ -1389,6 +1481,12 @@ IMPORTANT:
     focus?: unknown[];
     tasks?: unknown[];
     gratitudes?: unknown[];
+    moodActivities?: unknown[];
+    moodDomains?: unknown[];
+    activityTypes?: unknown[];
+    goals?: unknown[];
+    gamification?: unknown;
+    xpHistory?: unknown[];
   }): Promise<string> {
     const context = `
 DONNÉES UTILISATEUR DISPONIBLES:
@@ -1399,6 +1497,12 @@ ${data.habits ? `HABITUDES: ${JSON.stringify(data.habits)}` : ''}
 ${data.focus ? `SESSIONS FOCUS: ${JSON.stringify(data.focus)}` : ''}
 ${data.tasks ? `TÂCHES: ${JSON.stringify(data.tasks)}` : ''}
 ${data.gratitudes ? `GRATITUDES: ${JSON.stringify(data.gratitudes)}` : ''}
+${data.moodActivities ? `ACTIVITÉS LIÉES AUX MOODS: ${JSON.stringify(data.moodActivities)}` : ''}
+${data.moodDomains ? `DOMAINES D'IMPACT (travail, famille, etc.): ${JSON.stringify(data.moodDomains)}` : ''}
+${data.activityTypes ? `TYPES D'ACTIVITÉS: ${JSON.stringify(data.activityTypes)}` : ''}
+${data.goals ? `OBJECTIFS: ${JSON.stringify(data.goals)}` : ''}
+${data.gamification ? `GAMIFICATION (XP, level, badges): ${JSON.stringify(data.gamification)}` : ''}
+${data.xpHistory ? `HISTORIQUE XP: ${JSON.stringify(data.xpHistory)}` : ''}
 `;
 
     return this.sendMessage(question, context, { temperature: 0.5, maxTokens: 10000, featureName: 'Q&A Chatbot' });

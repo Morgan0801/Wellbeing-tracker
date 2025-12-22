@@ -212,12 +212,14 @@ export function useFocusEnhanced() {
       startTime,
       durationMinutes,
       tags,
+      objective,
       notes,
       sessionType = 'pomodoro' as SessionType,
     }: {
       startTime: Date;
       durationMinutes: number;
       tags?: string[];
+      objective?: string;
       notes?: string;
       sessionType?: SessionType;
     }) => {
@@ -235,6 +237,7 @@ export function useFocusEnhanced() {
           actual_duration_minutes: durationMinutes,
           session_type: sessionType,
           completed: true,
+          objective: objective || null,
           notes,
           is_manual_entry: true,
         })

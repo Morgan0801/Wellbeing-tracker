@@ -134,7 +134,7 @@ export function SleepInsights() {
 
             {/* Conclusion */}
             <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-pink-50 dark:from-blue-900/10 dark:to-pink-900/10 rounded-lg border border-sleep/20">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                 {sleepCoupleStats.avgQuality > sleepAloneStats.avgQuality ? (
                   <>
                     💑 <strong>Tu dors mieux en couple !</strong> Qualité {' '}
@@ -153,6 +153,24 @@ export function SleepInsights() {
                   </>
                 ) : (
                   <>✨ <strong>Pas de différence notable</strong> entre dormir seul(e) ou en couple</>
+                )}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 border-t border-sleep/10 pt-2">
+                ⏱️ <strong>Durée moyenne :</strong> {' '}
+                {sleepCoupleStats.avgDuration > sleepAloneStats.avgDuration ? (
+                  <>
+                    Tu dors <span className="font-semibold text-pink-700 dark:text-pink-400">
+                      {(sleepCoupleStats.avgDuration - sleepAloneStats.avgDuration).toFixed(1)}h de plus
+                    </span> en couple
+                  </>
+                ) : sleepCoupleStats.avgDuration < sleepAloneStats.avgDuration ? (
+                  <>
+                    Tu dors <span className="font-semibold text-blue-700 dark:text-blue-400">
+                      {(sleepAloneStats.avgDuration - sleepCoupleStats.avgDuration).toFixed(1)}h de plus
+                    </span> seul(e)
+                  </>
+                ) : (
+                  <>Même durée moyenne</>
                 )}
               </p>
             </div>

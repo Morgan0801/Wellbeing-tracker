@@ -19,7 +19,21 @@ export function useAI() {
 
     const startDate = format(subDays(new Date(), days), 'yyyy-MM-dd');
 
-    const [moodsRes, sleepRes, habitsRes, habitLogsRes, focusRes, tasksRes, gratitudesRes, goalsRes] = await Promise.all([
+    const [
+      moodsRes,
+      sleepRes,
+      habitsRes,
+      habitLogsRes,
+      focusRes,
+      tasksRes,
+      gratitudesRes,
+      goalsRes,
+      moodActivitiesRes,
+      moodDomainsRes,
+      activityTypesRes,
+      gamificationRes,
+      xpHistoryRes
+    ] = await Promise.all([
       supabase.from('moods').select('*').eq('user_id', user.id).gte('datetime', startDate).order('datetime', { ascending: false }),
       supabase.from('sleep_logs').select('*').eq('user_id', user.id).gte('date', startDate).order('date', { ascending: false }),
       supabase.from('habits').select('*').eq('user_id', user.id),
@@ -28,6 +42,16 @@ export function useAI() {
       supabase.from('tasks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('gratitude_entries').select('*').eq('user_id', user.id).gte('date', startDate).order('date', { ascending: false }),
       supabase.from('goals').select('*, goal_milestones(*)').eq('user_id', user.id),
+      // NOUVELLES DONNÉES: Activités liées aux moods
+      supabase.from('mood_activities').select('*'),
+      // NOUVELLES DONNÉES: Domaines d'impact des moods
+      supabase.from('mood_domains').select('*'),
+      // NOUVELLES DONNÉES: Types d'activités disponibles
+      supabase.from('activity_types').select('*').or(`user_id.eq.${user.id},is_default.eq.true`).eq('is_active', true),
+      // NOUVELLES DONNÉES: Gamification (XP, level, badges, streak)
+      supabase.from('user_gamification').select('*').eq('user_id', user.id).single(),
+      // NOUVELLES DONNÉES: Historique XP
+      supabase.from('xp_history').select('*').eq('user_id', user.id).gte('created_at', startDate).order('created_at', { ascending: false }),
     ]);
 
     return {
@@ -39,6 +63,12 @@ export function useAI() {
       tasks: tasksRes.data || [],
       gratitudes: gratitudesRes.data || [],
       goals: goalsRes.data || [],
+      // NOUVELLES DONNÉES
+      moodActivities: moodActivitiesRes.data || [],
+      moodDomains: moodDomainsRes.data || [],
+      activityTypes: activityTypesRes.data || [],
+      gamification: gamificationRes.data || null,
+      xpHistory: xpHistoryRes.data || [],
     };
   }, [user?.id]);
 
@@ -56,6 +86,11 @@ export function useAI() {
         sleep: data.sleep,
         habits: data.habitLogs,
         focus: data.focus,
+        // NOUVELLES DONNÉES pour analyses avancées
+        moodActivities: data.moodActivities,
+        moodDomains: data.moodDomains,
+        activityTypes: data.activityTypes,
+        gamification: data.gamification,
       });
     },
     onError: (err: Error) => {
@@ -519,6 +554,13 @@ export function useAI() {
         focus: data.focus,
         tasks: data.tasks,
         gratitudes: data.gratitudes,
+        // NOUVELLES DONNÉES pour Q&A avancé
+        moodActivities: data.moodActivities,
+        moodDomains: data.moodDomains,
+        activityTypes: data.activityTypes,
+        goals: data.goals,
+        gamification: data.gamification,
+        xpHistory: data.xpHistory,
       });
 
       // Ajouter à l'historique de conversation

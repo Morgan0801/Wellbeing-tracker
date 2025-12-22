@@ -25,6 +25,7 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
     time: format(new Date(), 'HH:mm'),
     durationMinutes: 25,
     tags: [] as string[],
+    objective: '',
     notes: '',
   });
 
@@ -49,6 +50,7 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
         startTime: selectedDateTime,
         durationMinutes: formData.durationMinutes,
         tags: formData.tags.length > 0 ? formData.tags : undefined,
+        objective: formData.objective || undefined,
         notes: formData.notes || undefined,
       });
 
@@ -58,6 +60,7 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
         time: format(new Date(), 'HH:mm'),
         durationMinutes: 25,
         tags: [],
+        objective: '',
         notes: '',
       });
 
@@ -201,6 +204,24 @@ export function ManualEntryModal({ open, onClose }: ManualEntryModalProps) {
                 {formData.tags.length} tag{formData.tags.length > 1 ? 's' : ''} sélectionné{formData.tags.length > 1 ? 's' : ''}
               </p>
             )}
+          </div>
+
+          {/* Objectif */}
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              Objectif : qu'as-tu accompli ? (optionnel)
+            </label>
+            <Input
+              value={formData.objective}
+              onChange={(e) =>
+                setFormData({ ...formData, objective: e.target.value })
+              }
+              placeholder="Ex: Terminé le rapport, révisé le chapitre 3..."
+              maxLength={200}
+            />
+            <div className="text-xs text-muted-foreground text-right mt-1">
+              {formData.objective.length}/200
+            </div>
           </div>
 
           {/* Notes */}

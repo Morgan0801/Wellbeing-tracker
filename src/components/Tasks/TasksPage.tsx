@@ -55,7 +55,6 @@ export function TasksPage() {
   const activeTasks = tasks.filter((task) => !task.completed);
   const today = startOfDay(new Date());
   const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Il y a 24 heures
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Il y a 7 jours
 
   // Tâches complétées récentes (derniers 7 jours seulement)
@@ -64,19 +63,20 @@ export function TasksPage() {
     return new Date(task.completed_at) >= sevenDaysAgo;
   });
 
-  // Toutes les tâches du jour
+  // Toutes les tâches du jour (uniquement celles non complétées)
   const allTodayTasks = tasks.filter((task) => {
+    // Exclure toutes les tâches complétées
+    if (task.completed) return false;
+
     const hasDeadlineToday =
       task.deadline && startOfDay(new Date(task.deadline)).getTime() === today.getTime();
     const isQuadrantOne = task.quadrant === 1;
     const isOverdue = task.deadline && new Date(task.deadline) < today;
-    // Inclure les tâches complétées dans les dernières 24 heures (au lieu de "aujourd'hui")
-    const completedRecently = task.completed && task.completed_at &&
-      new Date(task.completed_at) >= oneDayAgo;
-    return hasDeadlineToday || isQuadrantOne || isOverdue || completedRecently;
+
+    return hasDeadlineToday || isQuadrantOne || isOverdue;
   });
 
-  const todayTasks = allTodayTasks.filter((task) => !task.completed);
+  const todayTasks = allTodayTasks;
 
   return (
     <motion.div

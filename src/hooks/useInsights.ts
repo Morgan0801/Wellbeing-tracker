@@ -4,6 +4,11 @@ import { useMood } from './useMood';
 import { useSleep } from './useSleep';
 import { useHabits } from './useHabits';
 import { useTasks } from './useTasks';
+import { useActivities } from './useActivities';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
+import { DOMAINS } from '@/types';
 
 type Correlation = {
   id: string;
@@ -32,23 +37,52 @@ type InsightData = {
 };
 
 export function useInsights(days: number = 30) {
+  const { user } = useAuthStore();
   const moodHook: any = useMood();
   const sleepHook: any = useSleep();
   const habitsHook: any = useHabits();
   const tasksHook: any = useTasks();
+  const activitiesHook: any = useActivities();
 
   const moods = moodHook?.moods ?? [];
   const sleepLogs = sleepHook?.sleepLogs ?? [];
   const habits = habitsHook?.habits ?? [];
   const habitLogs = habitsHook?.habitLogs ?? [];
   const tasks = tasksHook?.tasks ?? [];
+  const activityTypes = activitiesHook?.activityTypes ?? [];
+
+  // Charger les mood_activities
+  const { data: moodActivities = [], isLoading: isActivitiesLoading } = useQuery({
+    queryKey: ['mood-activities', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mood_activities')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Charger les mood_domains
+  const { data: moodDomains = [], isLoading: isDomainsLoading } = useQuery({
+    queryKey: ['mood-domains', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mood_domains')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   const isMoodsLoading = moodHook?.isLoading ?? moodHook?.loading ?? false;
   const isSleepLoading = sleepHook?.isLoading ?? sleepHook?.loading ?? false;
   const isHabitsLoading = habitsHook?.isLoading ?? habitsHook?.loading ?? false;
   const isTasksLoading = tasksHook?.isLoading ?? tasksHook?.loading ?? false;
 
-  const isLoading = Boolean(isMoodsLoading || isSleepLoading || isHabitsLoading || isTasksLoading);
+  const isLoading = Boolean(isMoodsLoading || isSleepLoading || isHabitsLoading || isTasksLoading || isActivitiesLoading || isDomainsLoading);
 
   // Fenêtre temporelle inclusive
   const endDate = new Date();
@@ -122,7 +156,15 @@ export function useInsights(days: number = 30) {
     : [];
 
   // --- Corrélations & Recos ---
-  const correlations = calculateCorrelations(filteredMoods, filteredSleep, filteredHabitLogs, startDate);
+  const correlations = calculateCorrelations(
+    filteredMoods,
+    filteredSleep,
+    filteredHabitLogs,
+    startDate,
+    moodActivities,
+    moodDomains,
+    activityTypes
+  );
   const recommendations = generateRecommendations(moodTrend, sleepTrend, habitSuccess);
 
   const insights: InsightData = {
@@ -171,7 +213,15 @@ function calculateStreak(logs: any[]): number {
   return streak;
 }
 
-function calculateCorrelations(moods: any[], sleep: any[], habitLogs: any[], _startDate: Date): Correlation[] {
+function calculateCorrelations(
+  moods: any[],
+  sleep: any[],
+  habitLogs: any[],
+  _startDate: Date,
+  moodActivities: any[],
+  moodDomains: any[],
+  activityTypes: any[]
+): Correlation[] {
   const correlations: Correlation[] = [];
 
   // 1) Sommeil (qualité) -> Humeur (moyenne du lendemain)
@@ -254,6 +304,107 @@ function calculateCorrelations(moods: any[], sleep: any[], habitLogs: any[], _st
         insight: corr > 0 ? 'Plus tu dors, meilleure est ton humeur le lendemain.' : 'Trop dormir semble affecter ton humeur.',
       });
     }
+  }
+
+  // ✅ 4) NOUVEAU: Activités -> Humeur
+  if (moodActivities.length > 5 && moods.length > 5 && activityTypes.length > 0) {
+    // Pour chaque type d'activité, calculer la corrélation avec l'humeur
+    activityTypes.forEach((activityType: any) => {
+      const activityId = activityType.id;
+
+      // Créer un map des moods qui ont fait cette activité
+      const moodsWithActivity = new Set<string>();
+      moodActivities
+        .filter((ma: any) => ma.activity_type_id === activityId && ma.done)
+        .forEach((ma: any) => moodsWithActivity.add(ma.mood_id));
+
+      // Calculer les moyennes d'humeur avec/sans cette activité
+      const moodsWithActivityScores: number[] = [];
+      const moodsWithoutActivityScores: number[] = [];
+
+      moods.forEach((m: any) => {
+        const score = Number(m.score_global ?? m.global_score ?? m.score ?? 0);
+        if (moodsWithActivity.has(m.id)) {
+          moodsWithActivityScores.push(score);
+        } else {
+          moodsWithoutActivityScores.push(score);
+        }
+      });
+
+      // Si on a assez de données (au moins 3 occurrences de chaque)
+      if (moodsWithActivityScores.length >= 3 && moodsWithoutActivityScores.length >= 3) {
+        const avgWith = avg(moodsWithActivityScores);
+        const avgWithout = avg(moodsWithoutActivityScores);
+        const difference = avgWith - avgWithout;
+
+        // Si la différence est significative (au moins 0.5 points)
+        if (Math.abs(difference) >= 0.5) {
+          const percentChange = Math.round((difference / Math.max(1, avgWithout)) * 100);
+          const activityName = activityType.name || 'Cette activité';
+
+          correlations.push({
+            id: `activity-${activityId}`,
+            type: difference > 0 ? 'positive' : 'negative',
+            strength: clamp(Math.abs(percentChange), 1, 95),
+            description: `${activityType.emoji} ${activityName} et humeur`,
+            insight: difference > 0
+              ? `${activityName} augmente ton humeur de +${Math.abs(percentChange)}% en moyenne.`
+              : `${activityName} semble diminuer ton humeur de ${Math.abs(percentChange)}%.`,
+          });
+        }
+      }
+    });
+  }
+
+  // ✅ 5) NOUVEAU: Domaines -> Humeur
+  if (moodDomains.length > 5 && moods.length > 5) {
+    // Grouper les impacts par domaine
+    const domainImpactsByMood = new Map<string, Map<string, number>>();
+    moodDomains.forEach((md: any) => {
+      if (!domainImpactsByMood.has(md.mood_id)) {
+        domainImpactsByMood.set(md.mood_id, new Map());
+      }
+      domainImpactsByMood.get(md.mood_id)!.set(md.domain, md.impact);
+    });
+
+    // Pour chaque domaine, calculer la corrélation entre l'impact déclaré et l'humeur
+    DOMAINS.forEach((domainDef) => {
+      const domainType = domainDef.type;
+      const pairs: Array<[number, number]> = [];
+
+      moods.forEach((m: any) => {
+        const impacts = domainImpactsByMood.get(m.id);
+        if (impacts && impacts.has(domainType)) {
+          const impact = impacts.get(domainType) || 0;
+          const score = Number(m.score_global ?? m.global_score ?? m.score ?? 0);
+          // Ne prendre que les impacts non-neutres
+          if (impact !== 0) {
+            pairs.push([impact, score]);
+          }
+        }
+      });
+
+      // Si on a assez de données (au moins 5 points)
+      if (pairs.length >= 5) {
+        const corr = pearson(pairs);
+
+        // Corrélation significative (>= 0.2)
+        if (!Number.isNaN(corr) && Math.abs(corr) >= 0.2) {
+          const avgImpact = avg(pairs.map(p => p[0]));
+          const impactLabel = avgImpact > 0 ? 'positif' : 'négatif';
+
+          correlations.push({
+            id: `domain-${domainType}`,
+            type: corr > 0 ? 'positive' : 'negative',
+            strength: clamp(Math.round(Math.abs(corr) * 100), 1, 95),
+            description: `${domainDef.emoji} ${domainDef.label} et humeur`,
+            insight: corr > 0
+              ? `${domainDef.label} a un impact ${impactLabel} sur ton humeur (corrélation: ${Math.round(corr * 100)}%).`
+              : `${domainDef.label} semble inversement corrélé à ton humeur.`,
+          });
+        }
+      }
+    });
   }
 
   return correlations;

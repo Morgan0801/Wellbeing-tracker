@@ -67,6 +67,24 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
     }
   };
 
+  // Charger les mood_activities existantes lors de l'édition
+  const loadExistingActivities = async (moodId: string) => {
+    const { data } = await supabase
+      .from('mood_activities')
+      .select('activity_type_id, done')
+      .eq('mood_id', moodId);
+
+    if (data && data.length > 0) {
+      const loadedActivities = new Set<string>();
+      data.forEach((a: { activity_type_id: string; done: boolean }) => {
+        if (a.done) {
+          loadedActivities.add(a.activity_type_id);
+        }
+      });
+      setSelectedActivities(loadedActivities);
+    }
+  };
+
   useEffect(() => {
     if (editingMood && open) {
       setScoreGlobal(editingMood.score_global);
@@ -80,6 +98,8 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
       }
       // Charger les domaines existants
       loadExistingDomains(editingMood.id);
+      // Charger les activités existantes
+      loadExistingActivities(editingMood.id);
     } else if (!editingMood && open) {
       setScoreGlobal(5);
       setSelectedEmotions([]);
