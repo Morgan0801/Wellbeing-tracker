@@ -142,6 +142,61 @@ export function useAI() {
   });
 
   // ============================================
+  // 2.5 COMPARAISON SEMAINE ACTUELLE VS PRÉCÉDENTE
+  // ============================================
+  const fetchPeriodData = useCallback(async (startDaysAgo: number, endDaysAgo: number) => {
+    if (!user?.id) return null;
+
+    const startDate = format(subDays(new Date(), startDaysAgo), 'yyyy-MM-dd');
+    const endDate = format(subDays(new Date(), endDaysAgo), 'yyyy-MM-dd');
+
+    const [moodsRes, sleepRes, habitLogsRes, focusRes] = await Promise.all([
+      supabase.from('moods').select('*').eq('user_id', user.id)
+        .gte('datetime', endDate).lte('datetime', startDate),
+      supabase.from('sleep_logs').select('*').eq('user_id', user.id)
+        .gte('date', endDate).lte('date', startDate),
+      supabase.from('habit_logs').select('*, habits(name, category)')
+        .gte('date', endDate).lte('date', startDate),
+      supabase.from('focus_sessions').select('*').eq('user_id', user.id)
+        .gte('start_time', endDate).lte('start_time', startDate),
+    ]);
+
+    return {
+      moods: moodsRes.data || [],
+      sleep: sleepRes.data || [],
+      habitLogs: habitLogsRes.data || [],
+      focus: focusRes.data || [],
+    };
+  }, [user?.id]);
+
+  const comparePeriods = useMutation({
+    mutationFn: async () => {
+      setError(null);
+
+      // Semaine actuelle: 7 derniers jours
+      const currentWeek = await fetchPeriodData(7, 0);
+      // Semaine précédente: jours 8 à 14
+      const previousWeek = await fetchPeriodData(14, 7);
+
+      if (!currentWeek || !previousWeek) {
+        throw new Error('Impossible de récupérer les données');
+      }
+
+      if (currentWeek.moods.length === 0 && previousWeek.moods.length === 0) {
+        throw new Error('Pas assez de données pour comparer. Continue à tracker tes données !');
+      }
+
+      return geminiService.comparePeriods({
+        currentWeek,
+        previousWeek,
+      });
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  // ============================================
   // 3. ANALYSE NLP DES NOTES ET GRATITUDES
   // ============================================
   const analyzeNotes = useMutation({
@@ -732,6 +787,11 @@ export function useAI() {
     generateMonthlySummary: generateMonthlySummary.mutateAsync,
     monthlySummary: generateMonthlySummary.data,
     isGeneratingMonthlySummary: generateMonthlySummary.isPending,
+
+    // 2.5 Comparaison de périodes
+    comparePeriods: comparePeriods.mutateAsync,
+    periodComparison: comparePeriods.data,
+    isComparingPeriods: comparePeriods.isPending,
 
     // 3. Analyse NLP
     analyzeNotes: analyzeNotes.mutateAsync,

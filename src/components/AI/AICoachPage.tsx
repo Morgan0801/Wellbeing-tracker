@@ -22,6 +22,7 @@ import {
 import { useAI } from '@/hooks/useAI';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type TabType = 'chat' | 'correlations' | 'summaries' | 'notes' | 'search' | 'affirmation' | 'habits' | 'export';
 
@@ -30,7 +31,7 @@ export function AICoachPage() {
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [chatInput, setChatInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [summaryPeriod, setSummaryPeriod] = useState<'week' | 'month'>('week');
+  const [summaryPeriod, setSummaryPeriod] = useState<'week' | 'month' | 'comparison'>('week');
   const [exportPeriod, setExportPeriod] = useState<'week' | 'month' | '3months'>('week');
 
   // Helper pour les couleurs basées sur le type de corrélation
@@ -270,7 +271,7 @@ export function AICoachPage() {
                     >
                       {msg.role === 'assistant' ? (
                         <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                         </div>
                       ) : (
                         <p>{msg.content}</p>
@@ -442,7 +443,7 @@ export function AICoachPage() {
                       : 'text-gray-600 dark:text-gray-400'
                   )}
                 >
-                  Hebdomadaire
+                  Hebdo
                 </button>
                 <button
                   onClick={() => setSummaryPeriod('month')}
@@ -455,28 +456,47 @@ export function AICoachPage() {
                 >
                   Mensuel
                 </button>
+                <button
+                  onClick={() => setSummaryPeriod('comparison')}
+                  className={cn(
+                    'px-4 py-2 rounded-md text-sm font-medium transition-colors',
+                    summaryPeriod === 'comparison'
+                      ? 'bg-white dark:bg-gray-700 shadow text-violet-600 dark:text-violet-400'
+                      : 'text-gray-600 dark:text-gray-400'
+                  )}
+                >
+                  S vs S-1
+                </button>
               </div>
               <button
-                onClick={() => summaryPeriod === 'week' ? ai.generateWeeklySummary() : ai.generateMonthlySummary()}
-                disabled={ai.isGeneratingWeeklySummary || ai.isGeneratingMonthlySummary}
+                onClick={() => {
+                  if (summaryPeriod === 'week') ai.generateWeeklySummary();
+                  else if (summaryPeriod === 'month') ai.generateMonthlySummary();
+                  else ai.comparePeriods();
+                }}
+                disabled={ai.isGeneratingWeeklySummary || ai.isGeneratingMonthlySummary || ai.isComparingPeriods}
                 className="flex items-center gap-2 px-4 py-2 bg-violet-500 text-white rounded-lg hover:bg-violet-600 disabled:opacity-50 transition-colors"
               >
-                {(ai.isGeneratingWeeklySummary || ai.isGeneratingMonthlySummary) ? (
+                {(ai.isGeneratingWeeklySummary || ai.isGeneratingMonthlySummary || ai.isComparingPeriods) ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
+                ) : summaryPeriod === 'comparison' ? (
+                  <TrendingUp className="w-4 h-4" />
                 ) : (
                   <Calendar className="w-4 h-4" />
                 )}
-                Générer
+                {summaryPeriod === 'comparison' ? 'Comparer' : 'Générer'}
               </button>
             </div>
 
-            {(summaryPeriod === 'week' ? ai.weeklySummary : ai.monthlySummary) && (
+            {/* Résumés hebdo/mensuel */}
+            {summaryPeriod !== 'comparison' && (summaryPeriod === 'week' ? ai.weeklySummary : ai.monthlySummary) && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 rounded-xl p-5 border border-violet-200 dark:border-violet-800"
               >
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     h2: ({children}) => (
                       <h2 className="text-lg font-bold text-violet-900 dark:text-violet-100 mt-4 mb-2 first:mt-0 flex items-center gap-2">
@@ -499,6 +519,33 @@ export function AICoachPage() {
                         {children}
                       </p>
                     ),
+                    table: ({children}) => (
+                      <div className="overflow-x-auto my-3">
+                        <table className="min-w-full text-sm border-collapse">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({children}) => (
+                      <thead className="bg-violet-100 dark:bg-violet-900/40">
+                        {children}
+                      </thead>
+                    ),
+                    th: ({children}) => (
+                      <th className="px-3 py-2 text-left font-semibold text-violet-900 dark:text-violet-100 border-b border-violet-200 dark:border-violet-700">
+                        {children}
+                      </th>
+                    ),
+                    td: ({children}) => (
+                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300 border-b border-violet-100 dark:border-violet-800">
+                        {children}
+                      </td>
+                    ),
+                    strong: ({children}) => (
+                      <strong className="font-bold text-violet-700 dark:text-violet-300">
+                        {children}
+                      </strong>
+                    ),
                   }}
                 >
                   {summaryPeriod === 'week' ? ai.weeklySummary! : ai.monthlySummary!}
@@ -506,11 +553,87 @@ export function AICoachPage() {
               </motion.div>
             )}
 
-            {!(summaryPeriod === 'week' ? ai.weeklySummary : ai.monthlySummary) &&
-             !(ai.isGeneratingWeeklySummary || ai.isGeneratingMonthlySummary) && (
+            {/* Comparaison semaines */}
+            {summaryPeriod === 'comparison' && ai.periodComparison && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-5 border border-indigo-200 dark:border-indigo-800"
+              >
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h2: ({children}) => (
+                      <h2 className="text-lg font-bold text-indigo-900 dark:text-indigo-100 mt-4 mb-2 first:mt-0 flex items-center gap-2">
+                        {children}
+                      </h2>
+                    ),
+                    ul: ({children}) => (
+                      <ul className="space-y-1.5 my-2 list-none pl-0">
+                        {children}
+                      </ul>
+                    ),
+                    li: ({children}) => (
+                      <li className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2 py-0.5">
+                        <span className="text-indigo-500 mt-0.5">•</span>
+                        <span className="flex-1">{children}</span>
+                      </li>
+                    ),
+                    p: ({children}) => (
+                      <p className="text-sm text-gray-800 dark:text-gray-200 my-2 leading-relaxed">
+                        {children}
+                      </p>
+                    ),
+                    table: ({children}) => (
+                      <div className="overflow-x-auto my-3">
+                        <table className="min-w-full text-sm border-collapse">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({children}) => (
+                      <thead className="bg-indigo-100 dark:bg-indigo-900/40">
+                        {children}
+                      </thead>
+                    ),
+                    th: ({children}) => (
+                      <th className="px-3 py-2 text-left font-semibold text-indigo-900 dark:text-indigo-100 border-b border-indigo-200 dark:border-indigo-700">
+                        {children}
+                      </th>
+                    ),
+                    td: ({children}) => (
+                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300 border-b border-indigo-100 dark:border-indigo-800">
+                        {children}
+                      </td>
+                    ),
+                    strong: ({children}) => (
+                      <strong className="font-bold text-indigo-700 dark:text-indigo-300">
+                        {children}
+                      </strong>
+                    ),
+                  }}
+                >
+                  {ai.periodComparison}
+                </ReactMarkdown>
+              </motion.div>
+            )}
+
+            {/* Placeholder */}
+            {((summaryPeriod === 'week' && !ai.weeklySummary && !ai.isGeneratingWeeklySummary) ||
+              (summaryPeriod === 'month' && !ai.monthlySummary && !ai.isGeneratingMonthlySummary) ||
+              (summaryPeriod === 'comparison' && !ai.periodComparison && !ai.isComparingPeriods)) && (
               <div className="text-center py-12 text-gray-400">
-                <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Génère un résumé pour voir ton bilan</p>
+                {summaryPeriod === 'comparison' ? (
+                  <>
+                    <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Compare ta semaine actuelle avec la précédente</p>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Génère un résumé pour voir ton bilan</p>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -549,6 +672,7 @@ export function AICoachPage() {
                 className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800"
               >
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     h2: ({children}) => (
                       <h2 className="text-base font-bold text-blue-900 dark:text-blue-100 mt-3 mb-2 first:mt-0">
@@ -570,6 +694,33 @@ export function AICoachPage() {
                       <p className="text-sm text-gray-800 dark:text-gray-200 my-1.5 leading-relaxed">
                         {children}
                       </p>
+                    ),
+                    table: ({children}) => (
+                      <div className="overflow-x-auto my-3">
+                        <table className="min-w-full text-sm border-collapse">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({children}) => (
+                      <thead className="bg-blue-100 dark:bg-blue-900/40">
+                        {children}
+                      </thead>
+                    ),
+                    th: ({children}) => (
+                      <th className="px-3 py-2 text-left font-semibold text-blue-900 dark:text-blue-100 border-b border-blue-200 dark:border-blue-700">
+                        {children}
+                      </th>
+                    ),
+                    td: ({children}) => (
+                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300 border-b border-blue-100 dark:border-blue-800">
+                        {children}
+                      </td>
+                    ),
+                    strong: ({children}) => (
+                      <strong className="font-bold text-blue-700 dark:text-blue-300">
+                        {children}
+                      </strong>
                     ),
                   }}
                 >
@@ -627,6 +778,7 @@ export function AICoachPage() {
                 className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-5 border border-emerald-200 dark:border-emerald-800"
               >
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     h3: ({children}) => (
                       <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-100 mt-3 mb-1 first:mt-0">
@@ -640,6 +792,33 @@ export function AICoachPage() {
                     ),
                     hr: () => (
                       <hr className="my-3 border-emerald-200 dark:border-emerald-800" />
+                    ),
+                    table: ({children}) => (
+                      <div className="overflow-x-auto my-3">
+                        <table className="min-w-full text-sm border-collapse">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({children}) => (
+                      <thead className="bg-emerald-100 dark:bg-emerald-900/40">
+                        {children}
+                      </thead>
+                    ),
+                    th: ({children}) => (
+                      <th className="px-3 py-2 text-left font-semibold text-emerald-900 dark:text-emerald-100 border-b border-emerald-200 dark:border-emerald-700">
+                        {children}
+                      </th>
+                    ),
+                    td: ({children}) => (
+                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300 border-b border-emerald-100 dark:border-emerald-800">
+                        {children}
+                      </td>
+                    ),
+                    strong: ({children}) => (
+                      <strong className="font-bold text-emerald-700 dark:text-emerald-300">
+                        {children}
+                      </strong>
                     ),
                   }}
                 >
@@ -731,6 +910,7 @@ export function AICoachPage() {
                 className="prose prose-sm dark:prose-invert max-w-none bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl p-5 border border-amber-200 dark:border-amber-800"
               >
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     h2: ({children}) => (
                       <h2 className="text-base font-bold text-amber-900 dark:text-amber-100 mt-3 mb-2 first:mt-0">
@@ -752,6 +932,33 @@ export function AICoachPage() {
                       <p className="text-sm text-gray-800 dark:text-gray-200 my-1.5 leading-relaxed">
                         {children}
                       </p>
+                    ),
+                    table: ({children}) => (
+                      <div className="overflow-x-auto my-3">
+                        <table className="min-w-full text-sm border-collapse">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({children}) => (
+                      <thead className="bg-amber-100 dark:bg-amber-900/40">
+                        {children}
+                      </thead>
+                    ),
+                    th: ({children}) => (
+                      <th className="px-3 py-2 text-left font-semibold text-amber-900 dark:text-amber-100 border-b border-amber-200 dark:border-amber-700">
+                        {children}
+                      </th>
+                    ),
+                    td: ({children}) => (
+                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300 border-b border-amber-100 dark:border-amber-800">
+                        {children}
+                      </td>
+                    ),
+                    strong: ({children}) => (
+                      <strong className="font-bold text-amber-700 dark:text-amber-300">
+                        {children}
+                      </strong>
                     ),
                   }}
                 >
@@ -819,7 +1026,7 @@ export function AICoachPage() {
                   animate={{ opacity: 1 }}
                   className="mt-8 text-left prose prose-sm dark:prose-invert max-w-none bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 max-h-96 overflow-y-auto"
                 >
-                  <ReactMarkdown>{ai.narrativeExport}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{ai.narrativeExport}</ReactMarkdown>
                 </motion.div>
               )}
             </div>

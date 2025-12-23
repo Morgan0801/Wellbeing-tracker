@@ -58,8 +58,15 @@ Ton rôle :
 - Donner des conseils personnalisés basés sur les données réelles
 - Être empathique, encourageant mais honnête
 - Répondre en français
-- Être concis mais complet
-- Utiliser des emojis avec modération pour rendre les réponses plus visuelles
+- Être ULTRA-CONCIS (100-150 mots max sauf export)
+
+FORMAT DE RÉPONSE OBLIGATOIRE :
+- Utiliser **gras** pour les métriques clés et chiffres importants
+- Utiliser des tableaux markdown | Col1 | Col2 | pour les comparaisons et données
+- Indicateurs visuels : 🟢 amélioration/bon | 🟡 stable/neutre | 🔴 baisse/attention
+- Structure : 1 insight principal → 1-2 détails → 1 action concrète
+- Max 3 emojis par réponse, pertinents uniquement
+- Listes à puces pour les recommandations
 
 Important :
 - Ne jamais inventer de données
@@ -873,34 +880,37 @@ GRATITUDES: ${JSON.stringify(data.gratitudes)}
     return this.sendMessageWithCache(
       cacheKey,
       context,
-      `Génère un résumé hebdomadaire ULTRA-CONCIS avec des bullet points courts.
+      `Génère un résumé hebdomadaire ULTRA-CONCIS.
 
 Format OBLIGATOIRE:
 
 ## 📊 Vue d'ensemble
-• [Métrique 1 avec chiffre]
-• [Métrique 2 avec chiffre]
-• [Métrique 3 avec chiffre]
+| Métrique | Valeur | Tendance |
+|----------|--------|----------|
+| Humeur moyenne | **X.X/10** | 🟢/🟡/🔴 +X% |
+| Sommeil moyen | **X.Xh** | 🟢/🟡/🔴 |
+| Habitudes | **XX%** | 🟢/🟡/🔴 |
+| Focus | **Xh XXmin** | 🟢/🟡/🔴 |
 
-## 🌟 Points forts
-• [Réussite 1 - MAX 60 caractères]
-• [Réussite 2 - MAX 60 caractères]
+## 🌟 Points forts (2 max)
+• **[Chiffre clé]** - [Réussite courte]
+• **[Chiffre clé]** - [Réussite courte]
 
-## 🎯 À améliorer
-• [Point 1 + action - MAX 60 caractères]
-• [Point 2 + action - MAX 60 caractères]
+## 🎯 À améliorer (2 max)
+• **[Métrique]** → [Action concrète]
+• **[Métrique]** → [Action concrète]
 
 ## 💡 Insight clé
-[1 phrase percutante avec chiffres - MAX 100 caractères]
+**[Chiffre]** : [1 phrase percutante - MAX 80 chars]
 
-## 🚀 Défi semaine prochaine
-[1 objectif SMART concret - MAX 80 caractères]
+## 🚀 Défi semaine
+[1 objectif SMART - MAX 60 chars]
 
 RÈGLES:
-- ULTRA-BREF: bullet points ≤60 chars
-- TOUJOURS citer des CHIFFRES PRÉCIS
-- MAX 3 bullets par section
-- Ton motivant mais factuel`,
+- Indicateurs: 🟢 ≥+5% | 🟡 ±5% | 🔴 ≤-5%
+- **Gras** pour TOUS les chiffres
+- Tableau obligatoire pour les métriques
+- MAX 100 mots total`,
       { temperature: 0.6, maxTokens: 12000, featureName: 'Résumé Hebdo', ttlSeconds: 86400 } // 24h TTL
     );
   }
@@ -931,36 +941,131 @@ GRATITUDES: ${JSON.stringify(data.gratitudes)}
     return this.sendMessageWithCache(
       cacheKey,
       context,
-      `Génère un bilan mensuel CONCIS avec bullet points courts.
+      `Génère un bilan mensuel CONCIS.
 
 Format OBLIGATOIRE:
 
-## 📈 Évolution globale
-• [Tendance 1 avec % - MAX 60 chars]
-• [Tendance 2 avec % - MAX 60 chars]
+## 📈 Évolution du mois
+| Métrique | Début mois | Fin mois | Évolution |
+|----------|------------|----------|-----------|
+| Humeur | **X.X** | **X.X** | 🟢/🟡/🔴 +X% |
+| Sommeil | **X.Xh** | **X.Xh** | 🟢/🟡/🔴 |
+| Habitudes | **XX%** | **XX%** | 🟢/🟡/🔴 |
 
 ## 🏆 Top 3 accomplissements
-• [Réussite 1 - MAX 60 chars]
-• [Réussite 2 - MAX 60 chars]
-• [Réussite 3 - MAX 60 chars]
+• **[Chiffre]** - [Réussite]
+• **[Chiffre]** - [Réussite]
+• **[Chiffre]** - [Réussite]
 
-## 📊 Chiffres clés
-• [Stat 1 avec comparaison - MAX 60 chars]
-• [Stat 2 avec comparaison - MAX 60 chars]
-
-## 🔍 Pattern détecté
-[1 corrélation importante avec chiffres - MAX 100 chars]
+## 🔍 Pattern clé
+**[Corrélation]** : [Explication avec chiffres - MAX 80 chars]
 
 ## 🎯 Plan mois prochain
-• [Action 1 - MAX 60 chars]
-• [Action 2 - MAX 60 chars]
+| Priorité | Objectif | Indicateur cible |
+|----------|----------|------------------|
+| 1 | [Action] | [Métrique visée] |
+| 2 | [Action] | [Métrique visée] |
 
 RÈGLES:
-- ULTRA-CONCIS: bullets ≤60 chars
-- CHIFFRES + COMPARAISONS obligatoires
-- MAX 3 bullets par section
-- Ton inspirant mais factuel`,
+- Indicateurs: 🟢 amélioration | 🟡 stable | 🔴 baisse
+- **Gras** pour TOUS les chiffres
+- Tableaux pour métriques et plan
+- MAX 120 mots total`,
       { temperature: 0.6, maxTokens: 15000, featureName: "Résumé Mensuel", ttlSeconds: 86400 } // 24h TTL
+    );
+  }
+
+  /**
+   * Compare la semaine actuelle avec la semaine précédente
+   */
+  async comparePeriods(data: {
+    currentWeek: {
+      moods: unknown[];
+      sleep: unknown[];
+      habitLogs: unknown[];
+      focus: unknown[];
+    };
+    previousWeek: {
+      moods: unknown[];
+      sleep: unknown[];
+      habitLogs: unknown[];
+      focus: unknown[];
+    };
+  }): Promise<string> {
+    // Calculer les métriques pour chaque période
+    const calcMetrics = (period: { moods: unknown[]; sleep: unknown[]; habitLogs: unknown[]; focus: unknown[] }) => {
+      const moods = period.moods as { score_global: number }[];
+      const sleep = period.sleep as { total_hours: number }[];
+      const habits = period.habitLogs as { completed: boolean }[];
+      const focus = period.focus as { duration: number }[];
+
+      const avgMood = moods.length > 0
+        ? (moods.reduce((s, m) => s + (m.score_global || 0), 0) / moods.length).toFixed(1)
+        : 'N/A';
+      const avgSleep = sleep.length > 0
+        ? (sleep.reduce((s, sl) => s + (sl.total_hours || 0), 0) / sleep.length).toFixed(1)
+        : 'N/A';
+      const habitRate = habits.length > 0
+        ? Math.round((habits.filter(h => h.completed).length / habits.length) * 100)
+        : 0;
+      const focusMinutes = focus.reduce((s, f) => s + (f.duration || 0), 0);
+
+      return { avgMood, avgSleep, habitRate, focusMinutes };
+    };
+
+    const current = calcMetrics(data.currentWeek);
+    const previous = calcMetrics(data.previousWeek);
+
+    const context = `
+COMPARAISON SEMAINE ACTUELLE vs SEMAINE PRÉCÉDENTE:
+
+SEMAINE ACTUELLE (7 derniers jours):
+- Humeur moyenne: ${current.avgMood}/10
+- Sommeil moyen: ${current.avgSleep}h
+- Taux habitudes: ${current.habitRate}%
+- Minutes focus total: ${current.focusMinutes}
+
+SEMAINE PRÉCÉDENTE (jours 8-14):
+- Humeur moyenne: ${previous.avgMood}/10
+- Sommeil moyen: ${previous.avgSleep}h
+- Taux habitudes: ${previous.habitRate}%
+- Minutes focus total: ${previous.focusMinutes}
+
+DONNÉES DÉTAILLÉES SEMAINE ACTUELLE:
+Humeurs: ${JSON.stringify(data.currentWeek.moods)}
+Sommeil: ${JSON.stringify(data.currentWeek.sleep)}
+Habitudes: ${JSON.stringify(data.currentWeek.habitLogs)}
+Focus: ${JSON.stringify(data.currentWeek.focus)}
+`;
+
+    return this.sendMessage(
+      `Compare ces deux semaines - Format ULTRA-CONCIS.
+
+Format OBLIGATOIRE:
+
+## 📊 Comparaison Semaine
+| Métrique | Sem. -1 | Sem. actuelle | Évolution |
+|----------|---------|---------------|-----------|
+| Humeur | **${previous.avgMood}** | **${current.avgMood}** | 🟢/🟡/🔴 +/-X% |
+| Sommeil | **${previous.avgSleep}h** | **${current.avgSleep}h** | 🟢/🟡/🔴 |
+| Habitudes | **${previous.habitRate}%** | **${current.habitRate}%** | 🟢/🟡/🔴 |
+| Focus | **${previous.focusMinutes}min** | **${current.focusMinutes}min** | 🟢/🟡/🔴 |
+
+## 📈 Analyse (3 points max)
+• **Point fort** : [Amélioration notable avec chiffres]
+• **À surveiller** : [Point de vigilance si pertinent]
+• **Tendance** : [Pattern observé]
+
+## 🎯 Action prioritaire
+→ **[1 action concrète]** pour la semaine prochaine
+
+RÈGLES:
+- Indicateurs: 🟢 amélioration ≥5% | 🟡 stable ±5% | 🔴 baisse ≥5%
+- **Gras** pour TOUS les chiffres
+- Calculer les % d'évolution réels
+- MAX 80 mots hors tableau`,
+      context,
+      { temperature: 0.5, maxTokens: 8000, resetHistory: true, featureName: 'Comparaison Périodes' }
     );
   }
 
@@ -976,26 +1081,28 @@ ${JSON.stringify(notes, null, 2)}
 Format OBLIGATOIRE:
 
 ## 🎭 Thèmes récurrents
-• [Thème 1 - fréquence - MAX 50 chars]
-• [Thème 2 - fréquence - MAX 50 chars]
-• [Thème 3 - fréquence - MAX 50 chars]
+| Thème | Fréquence | Sentiment |
+|-------|-----------|-----------|
+| [Thème 1] | **X fois** | 🟢/🟡/🔴 |
+| [Thème 2] | **X fois** | 🟢/🟡/🔴 |
+| [Thème 3] | **X fois** | 🟢/🟡/🔴 |
 
-## 😊 Tonalité émotionnelle
-[1 phrase sur l'évolution émotionnelle - MAX 80 chars]
+## 😊 Tonalité globale
+**[Positif/Neutre/Négatif]** : [Explication courte - MAX 60 chars]
 
 ## 🔑 Mots-clés
-[5 mots max, séparés par • ]
+\`mot1\` • \`mot2\` • \`mot3\` • \`mot4\` • \`mot5\`
 
-## 💡 Insight principal
-[1 découverte clé sur le bien-être - MAX 100 chars]
+## 💡 Insight
+**[Découverte]** : [Explication - MAX 80 chars]
 
-## 🎯 Suggestion
-[1 action concrète basée sur l'analyse - MAX 60 chars]
+## 🎯 Action suggérée
+→ [Action concrète - MAX 50 chars]
 
 RÈGLES:
-- ULTRA-BREF: respect strict des limites
-- Citations directes si pertinentes
-- Ton empathique et constructif`,
+- Indicateurs sentiment: 🟢 positif | 🟡 neutre | 🔴 négatif
+- **Gras** pour fréquences et mots-clés importants
+- MAX 80 mots total`,
       context,
       { temperature: 0.5, maxTokens: 10000, resetHistory: true, featureName: "Analyse Notes" }
     );
@@ -1377,24 +1484,27 @@ OBJECTIFS: ${JSON.stringify(data.goals ?? [])}
 
 Format OBLIGATOIRE:
 
+## 📊 Bilan actuel
+| Habitude | Taux | Tendance | Verdict |
+|----------|------|----------|---------|
+| [Nom] | **XX%** | 🟢/🟡/🔴 | Garder/Modifier/Retirer |
+
 ## 🗑️ À retirer/modifier
-• [Habitude - Raison - Taux - MAX 60 chars]
-• [Habitude - Raison - Taux - MAX 60 chars]
+• **[Habitude]** (XX%) → [Raison courte]
 
-## ➕ À ajouter (TOP 3)
-• [Nouvelle habitude + bénéfice - MAX 60 chars]
-• [Nouvelle habitude + bénéfice - MAX 60 chars]
-• [Nouvelle habitude + bénéfice - MAX 60 chars]
+## ➕ À ajouter
+| Habitude suggérée | Catégorie | Bénéfice attendu |
+|-------------------|-----------|------------------|
+| [Nom] | [Cat] | [Impact sur humeur/énergie] |
+| [Nom] | [Cat] | [Impact] |
 
-## 🔄 Optimisations
-• [Ajustement 1 - MAX 60 chars]
-• [Ajustement 2 - MAX 60 chars]
+## 💡 Quick win
+→ **[1 action immédiate]** pour booster ta routine
 
 RÈGLES:
-- ULTRA-BREF: bullets ≤60 chars
-- Basé sur DONNÉES RÉELLES (taux complétion, impact humeur)
-- Suggestions ACTIONNABLES immédiatement
-- MAX 3 bullets par section`,
+- Indicateurs: 🟢 >70% | 🟡 40-70% | 🔴 <40%
+- **Gras** pour taux et habitudes clés
+- MAX 80 mots total`,
       context,
       { temperature: 0.6, maxTokens: 10000, resetHistory: true, featureName: "Reco Habitudes" }
     );
@@ -1443,32 +1553,34 @@ COMPARAISON AVEC HISTORIQUE (sessions similaires):
 `;
 
     return this.sendMessage(
-      `Analyse cette session de focus et donne un feedback constructif et personnalisé:
+      `Analyse cette session focus - Format ULTRA-CONCIS.
 
-1. 📊 ÉVALUATION GLOBALE
-   - Comment s'est passée cette session ? Note sur 5 et commentaire bref
+Format OBLIGATOIRE:
 
-2. 💪 POINTS POSITIFS
-   - Ce qui a bien fonctionné (2-3 points concrets)
+## 📊 Évaluation : **X/5** 🟢/🟡/🔴
+| Critère | Cette session | Moyenne | Tendance |
+|---------|---------------|---------|----------|
+| Durée | **${session.duration}min** | ${avgDurationSameTags}min | 🟢/🟡/🔴 |
+| Qualité | **${session.postQuality ?? 'N/A'}/5** | ${avgQualitySameTags}/5 | 🟢/🟡/🔴 |
+| Distractions | **${session.distractions ?? 0}** | - | 🟢/🟡/🔴 |
 
-3. 🎯 AXES D'AMÉLIORATION
-   - Ce qui pourrait être optimisé (1-2 suggestions)
+## 💪 Points forts
+• **[Point 1]** - MAX 40 chars
+• **[Point 2]** - MAX 40 chars
 
-4. 💡 CONSEIL PERSONNALISÉ
-   - Une astuce actionnable pour la prochaine session (basée sur les données)
+## 🎯 À améliorer
+→ [1 suggestion concrète - MAX 50 chars]
 
-5. 📈 COMPARAISON HISTORIQUE
-   - Comment cette session se compare à tes sessions similaires (${sameTags.length} sessions avec tags similaires)
-   - Est-ce une progression, une régression, ou stable ?
+## 💡 Conseil pour la prochaine fois
+**[Action précise]** - MAX 60 chars
 
-6. 🎯 DURÉE OPTIMALE SUGGÉRÉE
-   - Basée sur ton historique, quelle durée serait idéale pour ce type de tâche ?
+## ⏱️ Durée optimale suggérée
+**[X minutes]** pour ce type de tâche (basé sur ${sameTags.length} sessions)
 
-IMPORTANT:
-- Sois spécifique et base-toi sur les DONNÉES fournies
-- Ton encourageant mais honnête
-- Conseils actionnables pour la prochaine fois
-- Utilise des emojis pour structurer (mais avec modération)`,
+RÈGLES:
+- Indicateurs: 🟢 ≥moyenne | 🟡 proche | 🔴 <moyenne
+- **Gras** pour les chiffres clés
+- MAX 80 mots total`,
       context,
       { temperature: 0.6, maxTokens: 4000, resetHistory: true }
     );
