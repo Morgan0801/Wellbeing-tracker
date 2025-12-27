@@ -416,7 +416,7 @@ export function useFocusEnhanced() {
     },
   });
 
-  // Supprimer un tag personnalisé
+  // Supprimer un tag (personnalisé ou par défaut)
   const deleteTag = useMutation({
     mutationFn: async (tagId: string) => {
       if (!user?.id) throw new Error('User not authenticated');
@@ -425,8 +425,7 @@ export function useFocusEnhanced() {
         .from('session_tags')
         .delete()
         .eq('id', tagId)
-        .eq('user_id', user.id)
-        .eq('is_default', false); // Only allow deleting custom tags
+        .eq('user_id', user.id);
 
       if (error) throw error;
     },

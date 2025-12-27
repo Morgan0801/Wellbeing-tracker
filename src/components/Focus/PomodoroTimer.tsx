@@ -88,6 +88,9 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
     hasSession: !!currentSessionId
   });
 
+  // Ref pour savoir si la session vient de se terminer naturellement
+  const sessionEndedNaturallyRef = useRef(false);
+
   // Timer principal avec précision améliorée (timestamp comparison)
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -104,6 +107,8 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
 
         if (remaining <= 0) {
           setTimeRemaining(0);
+          // Marquer que la session s'est terminée naturellement
+          sessionEndedNaturallyRef.current = true;
           setIsRunning(false);
         } else {
           setTimeRemaining(remaining);
@@ -116,12 +121,13 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
     };
   }, [isRunning, timeRemaining]);
 
-  // Gestion de la fin de session
+  // Gestion de la fin de session - déclenché quand isRunning passe à false avec timeRemaining à 0
   useEffect(() => {
-    if (timeRemaining === 0 && isRunning) {
+    if (timeRemaining === 0 && !isRunning && sessionEndedNaturallyRef.current && currentSessionId) {
+      sessionEndedNaturallyRef.current = false; // Réinitialiser le flag
       handleSessionEnd();
     }
-  }, [timeRemaining, isRunning]);
+  }, [timeRemaining, isRunning, currentSessionId]);
 
   const handleSessionEnd = async () => {
     if (currentSessionId && mode === 'pomodoro') {

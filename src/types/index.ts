@@ -405,3 +405,118 @@ export interface CalendarEvent {
   task_id?: string;
   created_at: string;
 }
+
+// ============================================
+// ACTIVITY-DOMAIN CORRELATION ANALYSIS
+// ============================================
+
+// Mapping activité → domaine(s) pour l'analyse croisée
+export const ACTIVITY_DOMAIN_MAPPING: Record<string, DomainType[]> = {
+  // Sport & activités physiques
+  'Sport': ['sport'],
+  'Marche': ['sport', 'bienetre'],
+  'Yoga': ['sport', 'bienetre'],
+
+  // Social
+  'Famille': ['famille'],
+  'Amis': ['amis'],
+  'Couple': ['amour'],
+  'Sortie': ['amis', 'loisirs'],
+
+  // Travail
+  'Travail': ['travail'],
+  'Deep Work': ['travail'],
+  'Réunions': ['travail'],
+
+  // Santé & bien-être
+  'Méditation': ['bienetre'],
+  'Bien dormi': ['bienetre'],
+  'Hydraté': ['bienetre'],
+  'Sain': ['bienetre'],
+  'Vitamines': ['bienetre'],
+
+  // Loisirs
+  'Lecture': ['loisirs'],
+  'Nature': ['loisirs', 'bienetre'],
+  'Musique': ['loisirs'],
+  'Gaming': ['loisirs'],
+  'Créatif': ['loisirs'],
+  'Séries': ['loisirs'],
+
+  // Habitudes négatives (peuvent impacter plusieurs domaines)
+  'Alcool': ['bienetre'],
+  'Caféine++': ['bienetre'],
+  'Malbouffe': ['bienetre'],
+  'Écrans tard': ['bienetre'],
+};
+
+// Fallback par catégorie pour les activités custom
+export const CATEGORY_DOMAIN_FALLBACK: Record<ActivityCategory, DomainType[]> = {
+  'sport': ['sport'],
+  'social': ['amis', 'famille'],
+  'travail': ['travail'],
+  'loisirs': ['loisirs'],
+  'sante': ['bienetre'],
+  'custom': [],
+};
+
+// Types de scénarios pour l'analyse croisée
+export type ActivityDomainScenario = 'A' | 'B' | 'C' | 'D';
+// A = Activité faite + impact positif ("faire X me rend heureux")
+// B = Activité pas faite + impact négatif ("ne pas faire X me rend malheureux")
+// C = Activité faite + impact négatif ("X s'est mal passé")
+// D = Activité pas faite + impact positif ("bien fait de ne pas faire X")
+
+export interface ScenarioStats {
+  count: number;
+  avgMood: number;
+  avgImpact: number;
+  percentage: number;
+}
+
+export interface CombinedCorrelation {
+  activityId: string;
+  activityName: string;
+  activityEmoji: string;
+  domainType: DomainType;
+  domainLabel: string;
+  domainEmoji: string;
+
+  scenarios: {
+    A: ScenarioStats;
+    B: ScenarioStats;
+    C: ScenarioStats;
+    D: ScenarioStats;
+  };
+
+  overallStats: {
+    avgMoodWhenDone: number;
+    avgMoodWhenNotDone: number;
+    avgImpactWhenDone: number;
+    avgImpactWhenNotDone: number;
+    totalDataPoints: number;
+  };
+
+  primaryInsight: string;
+  secondaryInsight?: string;
+  confidence: 'high' | 'medium' | 'low';
+  insightType: 'positive' | 'warning' | 'informational';
+}
+
+export interface ActivityDomainInsight {
+  id: string;
+  title: string;
+  description: string;
+  type: 'positive' | 'negative' | 'mixed' | 'discovery';
+  priority: 'high' | 'medium' | 'low';
+  dataPointCount: number;
+  relatedActivity?: {
+    name: string;
+    emoji: string;
+  };
+  relatedDomain?: {
+    type: DomainType;
+    label: string;
+    emoji: string;
+  };
+}

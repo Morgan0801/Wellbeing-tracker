@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useFocusEnhanced } from '@/hooks/useFocusEnhanced';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CompactTagSelectorProps {
   value: string[];
@@ -25,8 +25,9 @@ export function CompactTagSelector({
   onChange,
   maxSelection = 5,
 }: CompactTagSelectorProps) {
-  const { tags, recentTags, createTag } = useFocusEnhanced();
+  const { tags, recentTags, createTag, deleteTag } = useFocusEnhanced();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showAllTags, setShowAllTags] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState(DEFAULT_EMOJIS[0]);
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
@@ -64,42 +65,106 @@ export function CompactTagSelector({
     setShowCreateDialog(false);
   };
 
+  const handleDeleteTag = async (tagId: string, tagName: string) => {
+    if (confirm('Supprimer ce tag ? Les sessions utilisant ce tag ne seront pas affectées.')) {
+      await deleteTag.mutateAsync(tagId);
+
+      // Retirer de la sélection si nécessaire
+      if (value.includes(tagName)) {
+        onChange(value.filter(v => v !== tagName));
+      }
+    }
+  };
+
+  // Nombre de tags à afficher par défaut
+  const INITIAL_DISPLAY_COUNT = 8;
+  const displayedTags = showAllTags ? sortedTags : sortedTags.slice(0, INITIAL_DISPLAY_COUNT);
+  const hasMoreTags = sortedTags.length > INITIAL_DISPLAY_COUNT;
+
   return (
     <>
-      <div className="flex flex-wrap gap-1.5 items-center">
-        {sortedTags.slice(0, 8).map((tag) => {
-          const isSelected = value.includes(tag.name);
-          return (
-            <motion.button
-              key={tag.id}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => toggleTag(tag.name)}
-              className={cn(
-                "px-2 py-1 rounded-lg text-xs font-medium transition-all border",
-                isSelected
-                  ? "shadow-sm"
-                  : "hover:shadow-sm opacity-70 hover:opacity-100"
-              )}
-              style={{
-                backgroundColor: isSelected ? `${tag.color}30` : `${tag.color}10`,
-                borderColor: isSelected ? tag.color : 'transparent',
-                color: tag.color,
-              }}
-            >
-              <span className="mr-0.5">{tag.emoji}</span>
-              {tag.name}
-            </motion.button>
-          );
-        })}
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <AnimatePresence mode="popLayout">
+            {displayedTags.map((tag) => {
+              const isSelected = value.includes(tag.name);
+              return (
+                <motion.div
+                  key={tag.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="relative group"
+                >
+                  <button
+                    onClick={() => toggleTag(tag.name)}
+                    className={cn(
+                      "px-2 py-1 rounded-lg text-xs font-medium transition-all border flex items-center gap-0.5",
+                      isSelected
+                        ? "shadow-sm"
+                        : "hover:shadow-sm opacity-70 hover:opacity-100"
+                    )}
+                    style={{
+                      backgroundColor: isSelected ? `${tag.color}30` : `${tag.color}10`,
+                      borderColor: isSelected ? tag.color : 'transparent',
+                      color: tag.color,
+                    }}
+                  >
+                    <span>{tag.emoji}</span>
+                    {tag.name}
+                  </button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowCreateDialog(true)}
-          className="h-6 px-2 text-xs"
-        >
-          <Plus className="w-3 h-3" />
-        </Button>
+                  {/* Bouton de suppression */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTag(tag.id, tag.name);
+                    }}
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full
+                      flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                    title="Supprimer ce tag"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
+          {/* Bouton créer */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCreateDialog(true)}
+            className="h-6 px-2 text-xs"
+            title="Créer un nouveau tag"
+          >
+            <Plus className="w-3 h-3" />
+          </Button>
+        </div>
+
+        {/* Bouton voir plus/moins */}
+        {hasMoreTags && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAllTags(!showAllTags)}
+            className="h-6 px-2 text-xs w-full"
+          >
+            {showAllTags ? (
+              <>
+                <ChevronUp className="w-3 h-3 mr-1" />
+                Voir moins
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3 h-3 mr-1" />
+                Voir tous les tags ({sortedTags.length})
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Dialog création */}

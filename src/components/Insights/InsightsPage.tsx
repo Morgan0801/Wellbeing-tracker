@@ -22,6 +22,9 @@ import { SleepMoodCorrelation } from './SleepMoodCorrelation';
 import { ShareInsightsButton } from './ShareInsightsButton';
 import { WeatherInsights } from './WeatherInsights';
 import { SleepInsights } from '../Sleep/SleepInsights';
+import { useActivityDomainCorrelations } from '@/hooks/useActivityDomainCorrelations';
+import { ActivityDomainInsightCard } from './ActivityDomainInsightCard';
+import { Zap, AlertTriangle, Info } from 'lucide-react';
 
 interface DomainImpact {
   domain: string;
@@ -141,6 +144,10 @@ export function InsightsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('30days');
   const [correlationView, setCorrelationView] = useState<'grid' | 'list'>('grid');
   const [heatmapPeriod, setHeatmapPeriod] = useState<30 | 90>(90);
+
+  // Hook pour les corrélations croisées Activités x Domaines
+  const periodDays = selectedPeriod === '7days' ? 7 : selectedPeriod === '30days' ? 30 : 90;
+  const { groupedCorrelations, hasEnoughData: hasActivityDomainData } = useActivityDomainCorrelations(periodDays);
 
   // Calculer la date de début selon la période
   const startDate = useMemo(() => {
@@ -755,6 +762,113 @@ export function InsightsPage() {
           )}
         </div>
       </div>
+
+      {/* NOUVEAU: ANALYSE CROISÉE ACTIVITÉS x DOMAINES */}
+      {hasActivityDomainData && (
+        <div>
+          <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4 flex items-center gap-2">
+            <Zap className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
+            Analyse Croisée: Activités & Impact
+          </h2>
+          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Comprends comment tes activités influencent réellement ton humeur
+          </p>
+
+          <div className="space-y-4">
+            {/* Actions qui t'aident (Scénario A dominant) */}
+            {groupedCorrelations.positive.length > 0 && (
+              <Card className="border-green-200 dark:border-green-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm md:text-base flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <TrendingUp className="w-4 h-4" />
+                    Ce qui t'aide
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {groupedCorrelations.positive.slice(0, 4).map((correlation) => (
+                      <ActivityDomainInsightCard
+                        key={`${correlation.activityId}-${correlation.domainType}`}
+                        data={correlation}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Points d'attention (Scénario B/C dominant) */}
+            {groupedCorrelations.warning.length > 0 && (
+              <Card className="border-amber-200 dark:border-amber-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm md:text-base flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="w-4 h-4" />
+                    Points d'attention
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {groupedCorrelations.warning.slice(0, 4).map((correlation) => (
+                      <ActivityDomainInsightCard
+                        key={`${correlation.activityId}-${correlation.domainType}`}
+                        data={correlation}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Découvertes (Scénario D dominant) */}
+            {groupedCorrelations.informational.length > 0 && (
+              <Card className="border-blue-200 dark:border-blue-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm md:text-base flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                    <Info className="w-4 h-4" />
+                    Découvertes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {groupedCorrelations.informational.slice(0, 4).map((correlation) => (
+                      <ActivityDomainInsightCard
+                        key={`${correlation.activityId}-${correlation.domainType}`}
+                        data={correlation}
+                        compact
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Légende explicative */}
+          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-medium">
+              Comment lire ces insights :
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] md:text-xs text-gray-500">
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                <span>A: Fait + Positif</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                <span>B: Pas fait + Négatif</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                <span>C: Fait + Négatif</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                <span>D: Pas fait + Positif</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. SOMMEIL & HUMEUR */}
       {sleepMoodCorrelation && sleepMoodCorrelation.length > 0 && (
