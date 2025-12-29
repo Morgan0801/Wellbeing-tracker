@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAI } from '@/hooks/useAI';
 import { Card } from '@/components/ui/card';
 import { Sparkles, X, TrendingUp, Loader2, Play, RefreshCw } from 'lucide-react';
@@ -17,7 +17,6 @@ export function AIWeeklyInsightsCard() {
   const [isDismissed, setIsDismissed] = useState(false);
   const [correlations, setCorrelations] = useState<Correlation[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const hasLoadedRef = useRef(false); // Éviter les appels multiples
 
   // Vérifier localStorage au montage (refresh une fois par semaine)
   useEffect(() => {
