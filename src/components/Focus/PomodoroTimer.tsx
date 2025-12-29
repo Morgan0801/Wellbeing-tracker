@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Timer, Coffee, Brain, Play, Pause, RotateCcw, Settings, Check, Target, Zap } from 'lucide-react';
+import { Timer, Coffee, Brain, Play, Pause, RotateCcw, Settings, Check, Target, Zap, Clock, Hourglass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { SessionType, DistractionType } from '@/types';
 
 type TimerMode = 'pomodoro' | 'short_break' | 'long_break';
+type TimerType = 'countdown' | 'stopwatch'; // Minuteur ou Chronomètre
 
 const DEFAULT_TIMER_CONFIGS = {
   pomodoro: { duration: 25, label: 'Focus', color: 'focus', gradient: 'from-focus to-focus-light', icon: Timer },
@@ -48,7 +49,9 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   });
 
   const [mode, setMode] = useState<TimerMode>('pomodoro');
+  const [timerType, setTimerType] = useState<TimerType>('countdown'); // Minuteur par défaut
   const [timeRemaining, setTimeRemaining] = useState(customDurations[mode] * 60);
+  const [elapsedTime, setElapsedTime] = useState(0); // Temps écoulé pour le chronomètre
   const [sessionStartDuration, setSessionStartDuration] = useState(customDurations[mode] * 60); // Durée au début de la session
   const [isRunning, setIsRunning] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -95,23 +98,34 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (isRunning && timeRemaining > 0) {
+    if (isRunning) {
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now();
-        durationRef.current = timeRemaining;
+        if (timerType === 'countdown') {
+          durationRef.current = timeRemaining;
+        } else {
+          durationRef.current = elapsedTime; // Pour reprendre après pause
+        }
       }
 
       interval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTimeRef.current!) / 1000);
-        const remaining = durationRef.current - elapsed;
 
-        if (remaining <= 0) {
-          setTimeRemaining(0);
-          // Marquer que la session s'est terminée naturellement
-          sessionEndedNaturallyRef.current = true;
-          setIsRunning(false);
+        if (timerType === 'countdown') {
+          // Mode minuteur : compte à rebours
+          const remaining = durationRef.current - elapsed;
+
+          if (remaining <= 0) {
+            setTimeRemaining(0);
+            sessionEndedNaturallyRef.current = true;
+            setIsRunning(false);
+          } else {
+            setTimeRemaining(remaining);
+          }
         } else {
-          setTimeRemaining(remaining);
+          // Mode chronomètre : compte vers le haut
+          const totalElapsed = durationRef.current + elapsed;
+          setElapsedTime(totalElapsed);
         }
       }, 100); // Vérifier toutes les 100ms pour plus de fluidité
     }
@@ -119,7 +133,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, timeRemaining]);
+  }, [isRunning, timerType]);
 
   // Gestion de la fin de session - déclenché quand isRunning passe à false avec timeRemaining à 0
   useEffect(() => {
@@ -178,26 +192,42 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   const handleToggle = async () => {
     if (!isRunning && !currentSessionId) {
       // Démarrer une nouvelle session directement avec les inputs actuels
-      // IMPORTANT: Capturer la durée AVANT de démarrer la session UNIQUEMENT à la création
-      const initialDuration = timeRemaining;
-      setSessionStartDuration(initialDuration);
+      if (timerType === 'countdown') {
+        // Mode minuteur classique
+        const initialDuration = timeRemaining;
+        setSessionStartDuration(initialDuration);
 
-      const session = await startSession.mutateAsync({
-        durationMinutes: customDurations[mode],
-        sessionType: mode as SessionType,
-        tags: selectedTags.length > 0 ? selectedTags : undefined,
-        objective: objective.trim() || undefined,
-        preEnergyLevel: preEnergyLevel || undefined,
-      });
-      setCurrentSessionId(session.id);
+        const session = await startSession.mutateAsync({
+          durationMinutes: customDurations[mode],
+          sessionType: mode as SessionType,
+          tags: selectedTags.length > 0 ? selectedTags : undefined,
+          objective: objective.trim() || undefined,
+          preEnergyLevel: preEnergyLevel || undefined,
+        });
+        setCurrentSessionId(session.id);
+      } else {
+        // Mode chronomètre : créer une session stopwatch
+        setElapsedTime(0);
+        const session = await startSession.mutateAsync({
+          durationMinutes: 0, // Durée inconnue au départ
+          sessionType: 'stopwatch' as SessionType,
+          tags: selectedTags.length > 0 ? selectedTags : undefined,
+          objective: objective.trim() || undefined,
+          preEnergyLevel: preEnergyLevel || undefined,
+        });
+        setCurrentSessionId(session.id);
+      }
       setDistractionsCount(0);
     }
-    // IMPORTANT: Ne PAS re-capturer sessionStartDuration après une pause !
 
     if (!isRunning) {
       // Réinitialiser les refs pour le nouveau démarrage
       startTimeRef.current = null;
-      durationRef.current = timeRemaining;
+      if (timerType === 'countdown') {
+        durationRef.current = timeRemaining;
+      } else {
+        durationRef.current = elapsedTime;
+      }
     }
 
     setIsRunning(!isRunning);
@@ -205,10 +235,15 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
 
   const handlePostSessionSubmit = (data: { postFocusQuality?: number; sessionMood?: string; notes?: string }) => {
     if (currentSessionId) {
+      // Pour le chronomètre, calculer la durée réelle en minutes
+      const actualMinutes = timerType === 'stopwatch'
+        ? Math.ceil(elapsedTime / 60)
+        : customDurations[mode];
+
       completeSession.mutate({
         id: currentSessionId,
         completed: true,
-        actualDurationMinutes: customDurations[mode],
+        actualDurationMinutes: actualMinutes > 0 ? actualMinutes : 1,
         postFocusQuality: data.postFocusQuality,
         distractionsCount,
         sessionMood: data.sessionMood,
@@ -220,6 +255,9 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
       setObjective('');
       setPreEnergyLevel(undefined);
       setDistractionsCount(0);
+      if (timerType === 'stopwatch') {
+        setElapsedTime(0);
+      }
     }
     setShowPostSessionModal(false);
   };
@@ -234,27 +272,31 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   const handleDone = async () => {
     if (!currentSessionId) return;
 
-    // Calculer la durée réelle écoulée
-    const elapsed = Math.ceil((config.duration - timeRemaining) / 60);
-
     // Arrêter le timer
     setIsRunning(false);
-    setTimeRemaining(config.duration);
     startTimeRef.current = null;
-    durationRef.current = config.duration;
 
-    // Si mode pomodoro, afficher le modal post-session
-    if (mode === 'pomodoro') {
+    if (timerType === 'stopwatch') {
+      // Mode chronomètre : afficher le modal post-session
       setShowPostSessionModal(true);
     } else {
-      completeSession.mutate({
-        id: currentSessionId,
-        completed: true,
-        actualDurationMinutes: elapsed > 0 ? elapsed : 1,
-      });
+      // Mode minuteur classique
+      const elapsed = Math.ceil((config.duration - timeRemaining) / 60);
+      setTimeRemaining(config.duration);
+      durationRef.current = config.duration;
 
-      onSessionComplete?.(currentSessionId);
-      setCurrentSessionId(null);
+      if (mode === 'pomodoro') {
+        setShowPostSessionModal(true);
+      } else {
+        completeSession.mutate({
+          id: currentSessionId,
+          completed: true,
+          actualDurationMinutes: elapsed > 0 ? elapsed : 1,
+        });
+
+        onSessionComplete?.(currentSessionId);
+        setCurrentSessionId(null);
+      }
     }
   };
 
@@ -264,11 +306,15 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
       setCurrentSessionId(null);
     }
 
-    setTimeRemaining(config.duration);
-    setSessionStartDuration(config.duration); // Réinitialiser la durée de départ
+    if (timerType === 'stopwatch') {
+      setElapsedTime(0);
+    } else {
+      setTimeRemaining(config.duration);
+      setSessionStartDuration(config.duration);
+      durationRef.current = config.duration;
+    }
     setIsRunning(false);
     startTimeRef.current = null;
-    durationRef.current = config.duration;
   };
 
   const formatTime = (seconds: number) => {
@@ -280,8 +326,50 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   return (
     <Card variant="elevated" className="overflow-hidden">
       <CardContent className="py-4 px-4">
-        {/* Inputs compacts EN HAUT - uniquement pour mode pomodoro et si pas de session en cours */}
-        {!isRunning && mode === 'pomodoro' && (
+        {/* Toggle Minuteur / Chronomètre */}
+        <div className="flex justify-center mb-4">
+          <div className="inline-flex bg-muted/20 rounded-full p-1">
+            <button
+              onClick={() => {
+                if (!isRunning && !currentSessionId) {
+                  setTimerType('countdown');
+                }
+              }}
+              disabled={isRunning || !!currentSessionId}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5",
+                timerType === 'countdown'
+                  ? "bg-white dark:bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+                (isRunning || !!currentSessionId) && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Hourglass className="w-3.5 h-3.5" />
+              Minuteur
+            </button>
+            <button
+              onClick={() => {
+                if (!isRunning && !currentSessionId) {
+                  setTimerType('stopwatch');
+                }
+              }}
+              disabled={isRunning || !!currentSessionId}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5",
+                timerType === 'stopwatch'
+                  ? "bg-white dark:bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+                (isRunning || !!currentSessionId) && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              Chronomètre
+            </button>
+          </div>
+        </div>
+
+        {/* Inputs compacts EN HAUT - pour mode pomodoro/chronomètre et si pas de session en cours */}
+        {!isRunning && (mode === 'pomodoro' || timerType === 'stopwatch') && (
           <div className="mb-4 pb-4 border-b border-border space-y-2.5">
             {/* Objectif */}
             <div>
@@ -315,55 +403,65 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
           </div>
         )}
 
-        {/* Mode selector pills */}
-        <div className="flex gap-1.5 flex-wrap justify-center mb-3">
-          {(Object.keys(DEFAULT_TIMER_CONFIGS) as TimerMode[]).map((m) => {
-            const ModeIcon = DEFAULT_TIMER_CONFIGS[m].icon;
-            return (
-              <button
-                key={m}
-                onClick={() => handleModeChange(m)}
-                disabled={isRunning}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
-                  mode === m
-                    ? "bg-gradient-to-r from-focus to-focus-light text-white shadow-soft-md"
-                    : "bg-muted/10 text-muted-foreground hover:bg-muted/20 border border-transparent",
-                  isRunning && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <ModeIcon className="w-3.5 h-3.5" />
-                {DEFAULT_TIMER_CONFIGS[m].label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Mode selector pills - uniquement en mode minuteur */}
+        {timerType === 'countdown' && (
+          <div className="flex gap-1.5 flex-wrap justify-center mb-3">
+            {(Object.keys(DEFAULT_TIMER_CONFIGS) as TimerMode[]).map((m) => {
+              const ModeIcon = DEFAULT_TIMER_CONFIGS[m].icon;
+              return (
+                <button
+                  key={m}
+                  onClick={() => handleModeChange(m)}
+                  disabled={isRunning}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5",
+                    mode === m
+                      ? "bg-gradient-to-r from-focus to-focus-light text-white shadow-soft-md"
+                      : "bg-muted/10 text-muted-foreground hover:bg-muted/20 border border-transparent",
+                    isRunning && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <ModeIcon className="w-3.5 h-3.5" />
+                  {DEFAULT_TIMER_CONFIGS[m].label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Time Display (au-dessus de la tasse) */}
         <div className="text-center mb-1">
           <motion.span
-            key={timeRemaining}
+            key={timerType === 'stopwatch' ? elapsedTime : timeRemaining}
             initial={{ scale: 1.05, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="text-3xl lg:text-4xl font-mono font-bold tracking-tight text-foreground block"
           >
-            {formatTime(timeRemaining)}
+            {formatTime(timerType === 'stopwatch' ? elapsedTime : timeRemaining)}
           </motion.span>
           <span
             className={cn(
               "text-xs mt-0.5 uppercase tracking-widest font-medium block",
-              isRunning ? `text-${config.color}` : "text-muted-foreground"
+              isRunning
+                ? timerType === 'stopwatch' ? "text-productivity" : `text-${config.color}`
+                : "text-muted-foreground"
             )}
           >
-            {isRunning ? 'En cours' : 'En pause'}
+            {timerType === 'stopwatch'
+              ? (isRunning ? 'Chronomètre en cours' : 'Prêt')
+              : (isRunning ? 'En cours' : 'En pause')
+            }
           </span>
         </div>
 
         {/* Coffee Cup Animation (sans overlay de texte) */}
         <div className="relative mb-3">
           <CoffeeCupAnimation
-            fillPercent={fillPercent}
-            mode={mode === 'pomodoro' ? 'draining' : 'filling'}
+            fillPercent={timerType === 'stopwatch'
+              ? Math.min((elapsedTime / 3600) * 100, 100) // Remplit en 1h max
+              : fillPercent
+            }
+            mode={timerType === 'stopwatch' ? 'filling' : (mode === 'pomodoro' ? 'draining' : 'filling')}
             isAnimating={isRunning}
           />
         </div>
@@ -375,7 +473,10 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
             size="icon"
             variant="outline"
             onClick={handleReset}
-            disabled={!currentSessionId && timeRemaining === config.duration}
+            disabled={timerType === 'stopwatch'
+              ? (!currentSessionId && elapsedTime === 0)
+              : (!currentSessionId && timeRemaining === config.duration)
+            }
             className="h-9 w-9 rounded-full"
             title="Réinitialiser"
           >
@@ -388,7 +489,9 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
               "h-10 px-6 rounded-full font-semibold shadow-soft-md text-white text-sm",
               isRunning
                 ? "bg-productivity hover:bg-productivity/90"
-                : `bg-gradient-to-r ${config.gradient}`
+                : timerType === 'stopwatch'
+                  ? "bg-gradient-to-r from-productivity to-productivity-light"
+                  : `bg-gradient-to-r ${config.gradient}`
             )}
             onClick={handleToggle}
           >
@@ -405,8 +508,8 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
             )}
           </Button>
 
-          {/* Done Button (visible uniquement pendant une session) */}
-          {currentSessionId && mode === 'pomodoro' && (
+          {/* Done Button (visible pour pomodoro ou chronomètre pendant une session) */}
+          {currentSessionId && (mode === 'pomodoro' || timerType === 'stopwatch') && (
             <Button
               size="icon"
               variant="outline"
@@ -418,30 +521,40 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
             </Button>
           )}
 
-          {/* Settings Button */}
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={() => setShowDurationEdit(!showDurationEdit)}
-            disabled={isRunning}
-            className={cn(
-              "h-9 w-9 rounded-full",
-              isRunning && "opacity-50 cursor-not-allowed"
-            )}
-            title="Personnaliser les durées"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
+          {/* Settings Button - uniquement en mode minuteur */}
+          {timerType === 'countdown' && (
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => setShowDurationEdit(!showDurationEdit)}
+              disabled={isRunning}
+              className={cn(
+                "h-9 w-9 rounded-full",
+                isRunning && "opacity-50 cursor-not-allowed"
+              )}
+              title="Personnaliser les durées"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          )}
         </div>
 
         {/* Afficher l'objectif pendant la session */}
-        {isRunning && objective && mode === 'pomodoro' && (
+        {isRunning && objective && (mode === 'pomodoro' || timerType === 'stopwatch') && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-focus/10 rounded-lg p-2 mt-3 text-center border-l-2 border-focus"
+            className={cn(
+              "rounded-lg p-2 mt-3 text-center border-l-2",
+              timerType === 'stopwatch'
+                ? "bg-productivity/10 border-productivity"
+                : "bg-focus/10 border-focus"
+            )}
           >
-            <p className="text-xs font-medium text-focus">{objective}</p>
+            <p className={cn(
+              "text-xs font-medium",
+              timerType === 'stopwatch' ? "text-productivity" : "text-focus"
+            )}>{objective}</p>
           </motion.div>
         )}
 
@@ -500,7 +613,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
       <PostSessionModal
         open={showPostSessionModal}
         objective={objective}
-        duration={customDurations[mode]}
+        duration={timerType === 'stopwatch' ? Math.ceil(elapsedTime / 60) : customDurations[mode]}
         distractionsCount={distractionsCount}
         onClose={() => setShowPostSessionModal(false)}
         onSubmit={handlePostSessionSubmit}
@@ -510,7 +623,7 @@ export function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
       <DistractionTracker
         count={distractionsCount}
         onAddDistraction={handleAddDistraction}
-        isVisible={isRunning && mode === 'pomodoro'}
+        isVisible={isRunning && (mode === 'pomodoro' || timerType === 'stopwatch')}
       />
     </Card>
   );

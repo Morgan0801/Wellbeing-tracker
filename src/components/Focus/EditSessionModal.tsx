@@ -34,6 +34,7 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   pomodoro: 'Focus',
   short_break: 'Pause courte',
   long_break: 'Pause longue',
+  stopwatch: 'Chronomètre',
 };
 
 export function EditSessionModal({

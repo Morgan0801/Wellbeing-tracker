@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Clock, Edit3, Coffee, Timer, Brain, Trash2, Target, Zap, Star, AlertCircle } from 'lucide-react';
+import { Clock, Edit3, Coffee, Timer, Brain, Trash2, Target, Zap, Star, AlertCircle, Hourglass } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IconButton } from '@/components/ui/button';
 import { useFocusEnhanced } from '@/hooks/useFocusEnhanced';
@@ -19,12 +19,14 @@ const SESSION_TYPE_ICONS: Record<SessionType, any> = {
   pomodoro: Timer,
   short_break: Coffee,
   long_break: Brain,
+  stopwatch: Hourglass,
 };
 
 const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   pomodoro: 'Focus',
   short_break: 'Pause courte',
   long_break: 'Pause longue',
+  stopwatch: 'Chronomètre',
 };
 
 export function FocusHistory({ limit = 10 }: FocusHistoryProps) {

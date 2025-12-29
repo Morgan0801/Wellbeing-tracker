@@ -260,7 +260,7 @@ export const ACTIVITY_CATEGORIES: { type: ActivityCategory; label: string; emoji
 ];
 
 // FOCUS SESSIONS
-export type SessionType = 'pomodoro' | 'short_break' | 'long_break';
+export type SessionType = 'pomodoro' | 'short_break' | 'long_break' | 'stopwatch';
 export type StatsPeriod = 'today' | '7days' | '30days' | '90days';
 
 export interface FocusSession {

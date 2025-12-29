@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAI } from '@/hooks/useAI';
 import { Card } from '@/components/ui/card';
-import { Sparkles, X, TrendingUp, Loader2 } from 'lucide-react';
+import { Sparkles, X, TrendingUp, Loader2, Play, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Correlation {
@@ -44,36 +44,33 @@ export function AIWeeklyInsightsCard() {
     }
   }, []);
 
-  // Déclencher automatiquement si pas de données en cache (UNE SEULE FOIS)
-  useEffect(() => {
-    if (!ai.isConfigured || isDismissed || correlations || hasLoadedRef.current) {
-      return;
-    }
+  // DÉSACTIVÉ: Déclenchement automatique (consomme trop de tokens)
+  // L'utilisateur peut maintenant déclencher manuellement via le bouton "Analyser"
+  // useEffect(() => { ... }, []);
 
-    hasLoadedRef.current = true; // Marquer comme chargé AVANT l'appel
+  // Fonction pour déclencher manuellement l'analyse
+  const handleManualAnalysis = async () => {
+    if (!ai.isConfigured || isLoading) return;
+
     setIsLoading(true);
 
-    // Utiliser la fonction async directement
-    ai.analyzeCorrelations()
-      .then((data) => {
-        if (data && data.correlations && data.correlations.length > 0) {
-          // Limiter à 3 corrélations pour l'affichage
-          const topCorrelations = data.correlations.slice(0, 3);
-          setCorrelations(topCorrelations);
+    try {
+      const data = await ai.analyzeCorrelations();
+      if (data && data.correlations && data.correlations.length > 0) {
+        // Limiter à 3 corrélations pour l'affichage
+        const topCorrelations = data.correlations.slice(0, 3);
+        setCorrelations(topCorrelations);
 
-          // Mettre en cache pour 24h
-          localStorage.setItem('ai-weekly-insights-data', JSON.stringify(topCorrelations));
-          localStorage.setItem('ai-weekly-insights-timestamp', String(Date.now()));
-        }
-      })
-      .catch((error) => {
-        console.error('Erreur analyse corrélations:', error);
-        hasLoadedRef.current = false; // Permettre réessai en cas d'erreur
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [ai.isConfigured, isDismissed, correlations]); // RETIRER isLoading des dépendances !
+        // Mettre en cache pour 24h
+        localStorage.setItem('ai-weekly-insights-data', JSON.stringify(topCorrelations));
+        localStorage.setItem('ai-weekly-insights-timestamp', String(Date.now()));
+      }
+    } catch (error) {
+      console.error('Erreur analyse corrélations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDismiss = () => {
     const now = new Date();
@@ -85,10 +82,12 @@ export function AIWeeklyInsightsCard() {
   // Ne pas afficher si:
   // - IA non configurée
   // - Carte dismissée cette semaine
-  // - Pas de corrélations à afficher
-  if (!ai.isConfigured || isDismissed || (!correlations && !isLoading)) {
+  if (!ai.isConfigured || isDismissed) {
     return null;
   }
+
+  // Si pas de corrélations en cache, afficher le bouton pour lancer manuellement
+  const showManualTrigger = !correlations && !isLoading;
 
   const getTypeColors = (type: string) => {
     switch (type) {
@@ -143,14 +142,46 @@ export function AIWeeklyInsightsCard() {
                     Découvertes de la semaine
                   </span>
                 </div>
-                <button
-                  onClick={handleDismiss}
-                  className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-800 rounded-lg transition-colors"
-                  title="Masquer pour cette semaine"
-                >
-                  <X className="w-4 h-4 text-orange-500" />
-                </button>
+                <div className="flex items-center gap-1">
+                  {/* Bouton refresh (seulement si corrélations déjà chargées) */}
+                  {correlations && (
+                    <button
+                      onClick={handleManualAnalysis}
+                      disabled={isLoading}
+                      className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-800 rounded-lg transition-colors disabled:opacity-50"
+                      title="Relancer l'analyse"
+                    >
+                      <RefreshCw className={`w-4 h-4 text-orange-500 ${isLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                  )}
+                  <button
+                    onClick={handleDismiss}
+                    className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-800 rounded-lg transition-colors"
+                    title="Masquer pour cette semaine"
+                  >
+                    <X className="w-4 h-4 text-orange-500" />
+                  </button>
+                </div>
               </div>
+
+              {/* Bouton pour lancer manuellement l'analyse */}
+              {showManualTrigger && (
+                <div className="flex flex-col items-center gap-2 py-2">
+                  <p className="text-xs text-orange-600 dark:text-orange-400 text-center">
+                    Analyse des corrélations de tes 30 derniers jours
+                  </p>
+                  <button
+                    onClick={handleManualAnalysis}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    <Play className="w-4 h-4" />
+                    Lancer l'analyse
+                  </button>
+                  <p className="text-[10px] text-orange-500/70 dark:text-orange-400/70">
+                    ~130k tokens • Utilise ton quota IA
+                  </p>
+                </div>
+              )}
 
               {/* Loading */}
               {isLoading && (
