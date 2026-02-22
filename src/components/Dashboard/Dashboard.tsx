@@ -10,6 +10,8 @@ import { SleepChart } from './SleepChart';
 import { ActiveGoals } from './ActiveGoals';
 import { HabitStatsCalendar } from '@/components/Habits/HabitStatsCalendar';
 import { CrossInsights } from './CrossInsights';
+import { QuickMoodLog } from './QuickMoodLog';
+import { MoodWeekComparison } from './MoodWeekComparison';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 
 export function Dashboard() {
@@ -23,6 +25,16 @@ export function Dashboard() {
       {/* Header avec salutation personnalisée */}
       <motion.div variants={staggerItem}>
         <PerformanceHeader />
+      </motion.div>
+
+      {/* Quick Mood Log */}
+      <motion.div variants={staggerItem}>
+        <QuickMoodLog />
+      </motion.div>
+
+      {/* Comparaison semaine N vs N-1 */}
+      <motion.div variants={staggerItem}>
+        <MoodWeekComparison />
       </motion.div>
 
       {/* Insight quotidien IA */}

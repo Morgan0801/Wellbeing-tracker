@@ -1,5 +1,6 @@
 import { DOMAINS, DomainType } from '@/types';
 import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
 
 interface DomainSlidersProps {
   domains: Record<DomainType, number>;
@@ -7,12 +8,6 @@ interface DomainSlidersProps {
 }
 
 export function DomainSliders({ domains, onChange }: DomainSlidersProps) {
-  const getImpactColor = (impact: number) => {
-    if (impact < 0) return 'text-red-600 dark:text-red-400';
-    if (impact > 0) return 'text-green-600 dark:text-green-400';
-    return 'text-gray-500 dark:text-gray-400';
-  };
-
   const getImpactLabel = (impact: number) => {
     if (impact === 0) return 'Neutre';
     if (impact > 0) return `+${impact}`;
@@ -28,7 +23,14 @@ export function DomainSliders({ domains, onChange }: DomainSlidersProps) {
               <span className="text-xl">{domain.emoji}</span>
               {domain.label}
             </label>
-            <span className={`text-sm font-semibold ${getImpactColor(domains[domain.type])}`}>
+            <span className={cn(
+              'text-sm font-bold px-2 py-0.5 rounded-full min-w-[2.5rem] text-center',
+              domains[domain.type] < 0
+                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                : domains[domain.type] > 0
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+            )}>
               {getImpactLabel(domains[domain.type])}
             </span>
           </div>

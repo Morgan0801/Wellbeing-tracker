@@ -7,6 +7,7 @@ export function ActivityInsights() {
     const {
         positiveCorrelations,
         negativeCorrelations,
+        contexteCorrelations,
         hasEnoughData
     } = useActivityCorrelations(30);
 
@@ -44,6 +45,53 @@ export function ActivityInsights() {
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+                {/* Contexte de vie */}
+                {contexteCorrelations.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 flex items-center gap-2 mb-3">
+                      🌍 Contexte de vie & humeur
+                    </h4>
+                    <div className="space-y-2">
+                      {contexteCorrelations.map((corr) => (
+                        <motion.div
+                          key={corr.activityId}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className={`flex items-center justify-between p-3 rounded-lg ${
+                            corr.isPositive
+                              ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800'
+                              : 'bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{corr.activityEmoji}</span>
+                            <div>
+                              <span className="font-medium text-sm">{corr.activityName}</span>
+                              <p className="text-xs text-muted-foreground">
+                                {corr.daysWithActivity} jour{corr.daysWithActivity > 1 ? 's' : ''} de données
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-lg font-bold ${corr.isPositive ? 'text-orange-600' : 'text-slate-500'}`}>
+                              {corr.isPositive ? '+' : ''}{corr.difference}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              moy. {corr.avgMoodWith}/10
+                            </p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                    {contexteCorrelations.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2 px-1">
+                        Différence de score par rapport à tes journées sans ce contexte.
+                        {contexteCorrelations.some(c => c.significance === 'low') && ' (⚠️ peu de données — continue à logger !)'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Positive Correlations */}
                 {positiveCorrelations.length > 0 && (
                     <div>

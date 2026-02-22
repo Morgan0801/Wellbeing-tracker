@@ -15,7 +15,7 @@ export function CrossInsights() {
   const { sleepLogs } = useSleep();
   const { sleepQualityVsMood, sleepAloneStats, sleepCoupleStats } = useSleepCorrelations();
   const { topEnergyBoosters, topEnergyDrainers, averageEnergy } = useEnergyCorrelations(30);
-  const { positiveCorrelations, negativeCorrelations } = useActivityCorrelations(30);
+  const { positiveCorrelations, negativeCorrelations, contexteCorrelations } = useActivityCorrelations(30);
   const { socialPatterns, winningCombinations } = useAdvancedMoodInsights(30);
 
   // Générer des insights intelligents basés sur toutes les données
@@ -166,8 +166,28 @@ export function CrossInsights() {
       }
     }
 
+    // Insight contexte: meilleur contexte de vie
+    if (contexteCorrelations.length > 0) {
+      const best = contexteCorrelations.find(c => c.isPositive);
+      if (best) {
+        results.push({
+          type: 'positive',
+          emoji: best.activityEmoji,
+          text: `Tu es ${best.difference > 0 ? `+${best.difference} pts` : ''} plus heureux/se en mode "${best.activityName}" !`,
+        });
+      }
+      const worst = contexteCorrelations.slice().reverse().find(c => !c.isPositive);
+      if (worst) {
+        results.push({
+          type: 'info',
+          emoji: worst.activityEmoji,
+          text: `"${worst.activityName}" est souvent associé à une humeur plus basse (${worst.avgMoodWith}/10).`,
+        });
+      }
+    }
+
     return results;
-  }, [moods, sleepLogs, sleepQualityVsMood, positiveCorrelations, negativeCorrelations, topEnergyBoosters, topEnergyDrainers, socialPatterns, sleepAloneStats, sleepCoupleStats, winningCombinations, averageEnergy]);
+  }, [moods, sleepLogs, sleepQualityVsMood, positiveCorrelations, negativeCorrelations, contexteCorrelations, topEnergyBoosters, topEnergyDrainers, socialPatterns, sleepAloneStats, sleepCoupleStats, winningCombinations, averageEnergy]);
 
   if (insights.length === 0) {
     return null;

@@ -201,7 +201,7 @@ export interface DomainImpact {
 }
 
 // ACTIVITY TRACKING
-export type ActivityCategory = 'sport' | 'social' | 'travail' | 'loisirs' | 'sante' | 'custom';
+export type ActivityCategory = 'sport' | 'social' | 'travail' | 'loisirs' | 'sante' | 'custom' | 'contexte';
 
 export interface ActivityType {
   id: string;
@@ -248,9 +248,20 @@ export const DEFAULT_ACTIVITIES: Omit<ActivityType, 'id' | 'user_id' | 'created_
   { name: 'Caféine++', emoji: '☕', category: 'sante', is_default: true, is_active: true },
   { name: 'Malbouffe', emoji: '🍔', category: 'sante', is_default: true, is_active: true },
   { name: 'Écrans tard', emoji: '📱', category: 'sante', is_default: true, is_active: true },
+  // Contexte de vie
+  { name: 'Vacances',            emoji: '🏖️', category: 'contexte', is_default: true, is_active: true },
+  { name: 'Voyage',              emoji: '✈️', category: 'contexte', is_default: true, is_active: true },
+  { name: 'Weekend',             emoji: '🎉', category: 'contexte', is_default: true, is_active: true },
+  { name: 'Ski',                 emoji: '⛷️', category: 'contexte', is_default: true, is_active: true },
+  { name: 'Van life',            emoji: '🚐', category: 'contexte', is_default: true, is_active: true },
+  { name: 'Télétravail',         emoji: '🏠', category: 'contexte', is_default: true, is_active: true },
+  { name: 'Période stressante',  emoji: '😤', category: 'contexte', is_default: true, is_active: true },
+  { name: 'Temps libre',         emoji: '😌', category: 'contexte', is_default: true, is_active: true },
+  { name: 'Sport intensif',      emoji: '🏔️', category: 'contexte', is_default: true, is_active: true },
 ];
 
 export const ACTIVITY_CATEGORIES: { type: ActivityCategory; label: string; emoji: string; color: string }[] = [
+  { type: 'contexte', label: 'Contexte de vie', emoji: '🌍', color: '#FF7043' },
   { type: 'sport', label: 'Sport', emoji: '💪', color: '#66BB6A' },
   { type: 'social', label: 'Social', emoji: '👥', color: '#42A5F5' },
   { type: 'travail', label: 'Travail', emoji: '💼', color: '#5C6BC0' },
@@ -458,6 +469,7 @@ export const CATEGORY_DOMAIN_FALLBACK: Record<ActivityCategory, DomainType[]> = 
   'loisirs': ['loisirs'],
   'sante': ['bienetre'],
   'custom': [],
+  'contexte': [],
 };
 
 // Types de scénarios pour l'analyse croisée

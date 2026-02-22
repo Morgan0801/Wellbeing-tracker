@@ -4,7 +4,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -16,7 +15,7 @@ import { DomainSliders } from './DomainSliders';
 import { AIMoodSupportCard } from './AIMoodSupportCard';
 import { useMood } from '@/hooks/useMood';
 import { useActivities } from '@/hooks/useActivities';
-import { MOOD_LEVELS, MoodLog, DOMAINS, DomainType } from '@/types';
+import { MOOD_LEVELS, MoodLog, DOMAINS, DomainType, ActivityCategory } from '@/types';
 import { WeatherData } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -46,7 +45,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
   const [energyLevel, setEnergyLevel] = useState(5);
   const [domains, setDomains] = useState<Record<DomainType, number>>(getInitialDomains());
 
-  const { addMood, updateMood, isAdding, isUpdating } = useMood();
+  const { addMoodAsync, updateMoodAsync, isAdding, isUpdating } = useMood();
   const { activityTypes, addActivityType, saveMoodActivities } = useActivities();
 
   // Charger les mood_domains existants lors de l'édition
@@ -116,7 +115,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
     addActivityType.mutate({
       name,
       emoji,
-      category: category as 'custom',
+      category: category as ActivityCategory,
       is_default: false,
       is_active: true,
     });
@@ -140,7 +139,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
       .map(([domain, impact]) => ({ domain, impact }));
 
     if (editingMood) {
-      await updateMood({
+      await updateMoodAsync({
         id: editingMood.id,
         updates: {
           score_global: scoreGlobal,
@@ -160,7 +159,7 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
         });
       }
     } else {
-      addMood({
+      const newMood = await addMoodAsync({
         score_global: scoreGlobal,
         emotions: selectedEmotions,
         note: note || undefined,
@@ -169,6 +168,13 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
         datetime: datetimeISO,
         domains: domainsToSave,
       });
+
+      if (newMood && activitiesToSave.length > 0) {
+        saveMoodActivities.mutate({
+          moodId: newMood.id,
+          activities: activitiesToSave,
+        });
+      }
     }
 
     // Reset form
@@ -198,7 +204,28 @@ export function MoodModal({ open, onOpenChange, weather, editingMood }: MoodModa
           <DialogTitle>
             {editingMood ? 'Modifier le mood' : 'Comment te sens-tu ?'}
           </DialogTitle>
-          <DialogDescription>Étape {step} sur 5</DialogDescription>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => s < step ? setStep(s) : undefined}
+                  className={cn(
+                    'h-1.5 rounded-full transition-all duration-300 flex-1',
+                    s === step
+                      ? 'bg-primary'
+                      : s < step
+                        ? 'bg-primary/40 cursor-pointer hover:bg-primary/60'
+                        : 'bg-muted'
+                  )}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {['Score & énergie', 'Émotions', 'Activités & contexte', 'Domaines de vie', 'Note & date'][step - 1]}
+            </p>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6 py-4 pb-4">

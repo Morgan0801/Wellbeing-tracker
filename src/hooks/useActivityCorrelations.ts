@@ -9,6 +9,7 @@ interface ActivityCorrelation {
   activityId: string;
   activityName: string;
   activityEmoji: string;
+  activityCategory: string;
   avgMoodWith: number;
   avgMoodWithout: number;
   difference: number;
@@ -132,6 +133,7 @@ export function useActivityCorrelations(days: number = 30) {
         activityId: activity.id,
         activityName: activity.name,
         activityEmoji: activity.emoji,
+        activityCategory: activity.category,
         avgMoodWith: Math.round(avgMoodWith * 10) / 10,
         avgMoodWithout: Math.round(avgMoodWithout * 10) / 10,
         difference: Math.round(difference * 10) / 10,
@@ -151,21 +153,29 @@ export function useActivityCorrelations(days: number = 30) {
   // Top activités positives
   const positiveCorrelations = useMemo(() => {
     return sortedCorrelations
-      .filter((c) => c.isPositive && c.significance !== 'low')
+      .filter((c) => c.isPositive && c.significance !== 'low' && c.activityCategory !== 'contexte')
       .slice(0, 5);
   }, [sortedCorrelations]);
 
   // Top activités négatives
   const negativeCorrelations = useMemo(() => {
     return sortedCorrelations
-      .filter((c) => !c.isPositive && c.significance !== 'low')
+      .filter((c) => !c.isPositive && c.significance !== 'low' && c.activityCategory !== 'contexte')
       .slice(0, 5);
+  }, [sortedCorrelations]);
+
+  // Corrélations spécifiques aux tags de contexte de vie
+  const contexteCorrelations = useMemo(() => {
+    return sortedCorrelations
+      .filter((c) => c.activityCategory === 'contexte' && c.daysWithActivity >= 2)
+      .sort((a, b) => b.difference - a.difference);
   }, [sortedCorrelations]);
 
   return {
     correlations: sortedCorrelations,
     positiveCorrelations,
     negativeCorrelations,
+    contexteCorrelations,
     hasEnoughData: correlations.some((c) => c.significance !== 'low'),
   };
 }

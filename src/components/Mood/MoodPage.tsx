@@ -18,6 +18,45 @@ import { fr } from 'date-fns/locale';
 import { staggerContainer, staggerItem, scaleIn } from '@/lib/animations';
 import { fetchWeather } from '@/services/weather';
 import type { WeatherData } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+
+function TodayContextBadge({ moodId }: { moodId: string }) {
+  const { data: tags = [] } = useQuery({
+    queryKey: ['mood-context-tags', moodId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('mood_activities')
+        .select(`
+          activity_type_id,
+          activity_types!inner(name, emoji, category)
+        `)
+        .eq('mood_id', moodId)
+        .eq('done', true)
+        .eq('activity_types.category', 'contexte');
+      return (data || []) as unknown as Array<{
+        activity_type_id: string;
+        activity_types: { name: string; emoji: string; category: string };
+      }>;
+    },
+    staleTime: 60_000,
+  });
+
+  if (tags.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-2">
+      {tags.map((t) => (
+        <span
+          key={t.activity_type_id}
+          className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs font-medium"
+        >
+          {t.activity_types.emoji} {t.activity_types.name}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function MoodPage() {
   const [isMoodModalOpen, setIsMoodModalOpen] = useState(false);
@@ -37,6 +76,7 @@ export function MoodPage() {
   const todayAvgMood = todayMoods.length > 0
     ? Math.round((todayMoods.reduce((sum, m) => sum + m.score_global, 0) / todayMoods.length) * 10) / 10
     : null;
+  const latestMoodId = todayMoods[0]?.id;
 
   return (
     <motion.div
@@ -105,6 +145,7 @@ export function MoodPage() {
               </Button>
             </motion.div>
           </div>
+          {latestMoodId && <TodayContextBadge moodId={latestMoodId} />}
         </div>
       </motion.div>
 
